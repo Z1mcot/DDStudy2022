@@ -12,9 +12,17 @@ namespace DDStudy2022.DAL
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>()
+                .HasIndex(f => f.Email)
+                .IsUnique();
+        }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             => optionsBuilder.UseNpgsql(b => b.MigrationsAssembly("DDStudy2022.Api"));
 
         public DbSet<User> Users => Set<User>();
+        // Посты (на будущее)
+        // public DbSet<Post> Posts => Set<Post>();
     }
 }

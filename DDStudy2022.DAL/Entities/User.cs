@@ -13,5 +13,7 @@ namespace DDStudy2022.DAL.Entities
         public string Email { get; set; } = "not entered";
         public string PasswordHash { get; set; } = "not entered";
         public DateTimeOffset BirthDate { get; set; }
+        // Пока нет смысла добавлять посты в нашу апишку, пока мы с базовым функционалом не разобрались
+        // public ICollection<Post> PostsId { get; set; }
     }
 }
