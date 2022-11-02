@@ -1,4 +1,4 @@
-﻿namespace DDStudy2022.Api.Models
+﻿namespace DDStudy2022.Api.Models.Users
 {
     public class UserModel
     {

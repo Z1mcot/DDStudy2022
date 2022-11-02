@@ -1,5 +1,6 @@
 using AutoMapper.Configuration.Annotations;
 using DDStudy2022.Api.Configs;
+using DDStudy2022.Api.Middleware;
 using DDStudy2022.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -116,6 +117,8 @@ namespace DDStudy2022.Api
 
             app.UseAuthentication();
             app.UseAuthorization();
+            // Наша валидация с помощью middleware
+            app.UseTokenValidator();
 
             app.MapControllers();
 

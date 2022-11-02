@@ -22,6 +22,7 @@ namespace DDStudy2022.DAL
             => optionsBuilder.UseNpgsql(b => b.MigrationsAssembly("DDStudy2022.Api"));
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<UserSession> UserSessions => Set<UserSession>();
         // Посты (на будущее)
         // public DbSet<Post> Posts => Set<Post>();
     }

@@ -1,4 +1,4 @@
-﻿using DDStudy2022.Api.Models;
+﻿using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Api.Services;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +23,6 @@ namespace DDStudy2022.Api.Controllers
 
         [HttpPost]
         public async Task<TokenModel> RenewToken(RefreshTokenRequestModel model) 
-            => await _userService.RenewToken(model.RefreshToken);
+            => await _userService.GetTokenByRefreshToken(model.RefreshToken);
     }
 }

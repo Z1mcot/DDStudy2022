@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using DDStudy2022.Api.Models;
+using DDStudy2022.Api.Models.Sessions;
+using DDStudy2022.Api.Models.Users;
 using DDStudy2022.Api.Services;
 using DDStudy2022.Common;
 using DDStudy2022.DAL;
@@ -22,7 +24,12 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task CreateUser(CreateUserModel model) => await _userService.CreateUser(model);
+        public async Task CreateUser(CreateUserModel model)
+        {
+            if (await _userService.CheckUserExistence(model.Email))
+                throw new Exception("User already exists");
+            await _userService.CreateUser(model);
+        }
 
         [HttpGet]
         [Authorize]
@@ -36,10 +43,10 @@ namespace DDStudy2022.Api.Controllers
             if (Guid.TryParse(userId, out var id))
                 return await _userService.GetUser(id);
             else
-                throw new Exception("Something strange. Seems like you don\'t exist");
+                throw new Exception("Seems like you don\'t exist");
         }
 
-        [HttpPut]
+        [HttpPost]
         [Authorize]
         public async Task ChangeCurrentUserPassword(PasswordChangeModel model)
         {
@@ -50,7 +57,34 @@ namespace DDStudy2022.Api.Controllers
                 await _userService.ChangeUserPassword(id, model.OldPassword, model.NewPassword);
             }
             else
-                throw new Exception("Something strange. Seems like you don\'t exist");
+                throw new Exception("Seems like you don\'t exist");
         }
+
+        // Лучше конечно не удалять а замораживать аккаунты
+        [HttpPost]
+        [Authorize]
+        public async Task DeleteCurrentUser()
+        {
+            var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            if (Guid.TryParse(userId, out var id))
+                await _userService.DeleteUser(id);
+            else
+                throw new Exception("Seems like user don\'t exist");
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<ICollection<SessionModel>> GetCurrentSessions()
+        {
+            var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            if (Guid.TryParse(userId, out var id))
+                return await _userService.GetUserSessions(id);
+            else
+                throw new Exception("There are no current sessions for this user");
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task DeactivateSession(SessionDeactivationModel model) => await _userService.DeactivateSession(model.RefreshToken);
     }
 }
