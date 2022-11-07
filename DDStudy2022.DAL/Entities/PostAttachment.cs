@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DDStudy2022.DAL.Entities
 {
-    public class PostImage : Attachment
+    public class PostAttachment : Attachment
     {
         public virtual Post Post { get; set; } = null!;
     }

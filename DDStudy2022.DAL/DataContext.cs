@@ -22,8 +22,8 @@ namespace DDStudy2022.DAL
                 .IsUnique();
             modelBuilder.Entity<Avatar>()
                 .ToTable(nameof(Avatars));
-            modelBuilder.Entity<PostImage>()
-                .ToTable(nameof(PostImage));
+            modelBuilder.Entity<PostAttachment>()
+                .ToTable(nameof(PostAttachment));
             modelBuilder.Entity<PostComment>()
                 .ToTable(nameof(PostComment));
         }
@@ -35,7 +35,7 @@ namespace DDStudy2022.DAL
         public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<Avatar> Avatars => Set<Avatar>();
         public DbSet<Post> Posts => Set<Post>();
-        public DbSet<PostImage> postImages => Set<PostImage>();
+        public DbSet<PostAttachment> postImages => Set<PostAttachment>();
         public DbSet<PostComment> postComments => Set<PostComment>();
     }
 }

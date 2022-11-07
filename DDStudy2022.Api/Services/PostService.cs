@@ -34,7 +34,7 @@ namespace DDStudy2022.Api.Services
         public async Task CreatePost(Guid userId, CreatePostModel model)
         {
             var user = await GetUser(userId);
-            var postFiles = new List<PostImage>();
+            var postFiles = new List<PostAttachment>();
             
             var destFolder = Path.Combine(Directory.GetCurrentDirectory(), "Attachments");
             if (!string.IsNullOrEmpty(destFolder) && !Directory.Exists(destFolder))
@@ -48,7 +48,7 @@ namespace DDStudy2022.Api.Services
                 var destFile = Path.Combine(destFolder, meta.TempId.ToString());
                 System.IO.File.Copy(tempFile.FullName, destFile, true);
 
-                postFiles.Add(new PostImage
+                postFiles.Add(new PostAttachment
                 {
                     Author = user,
                     FilePath = destFile,
@@ -93,6 +93,7 @@ namespace DDStudy2022.Api.Services
             var post = await _context.Posts.Include(p => p.Content).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
                 throw new Exception("Post doesn\'t exist");
+
             return post;
         }
 
@@ -105,11 +106,13 @@ namespace DDStudy2022.Api.Services
             return post;
         }
 
-        public async Task<AttachmentModel> GetAttachmentById(long attachmentId)
+        public async Task<Attachment> GetAttachmentById(long attachmentId)
         {
             var attachment = await _context.Attachments.FirstOrDefaultAsync(p => p.Id == attachmentId);
+            if (attachment == null)
+                throw new Exception("attachment not found");
 
-            return _mapper.Map<AttachmentModel>(attachment);
+            return attachment;
         }
 
         public async Task<List<CommentModel>> GetPostComments(long postId)

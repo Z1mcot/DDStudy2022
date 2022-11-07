@@ -9,10 +9,7 @@ namespace DDStudy2022.Common
 {
     public static class LinkHelper
     {
-        public static string GetLinkOfAttachment(PostImage im)
-            => $"api/Attachment/ShowAttachment?attachmentId={im.Id}";
-
-        public static List<string> GetLinksOfAttachments(IList<PostImage> ims)
-            => ims.Select(x => GetLinkOfAttachment(x)).ToList();
+        public static string GetLinkOfAttachment(long id)
+            => $"api/Attachment/ShowAttachment?attachmentId={id}";
     }
 }
