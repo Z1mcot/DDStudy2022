@@ -14,6 +14,6 @@ namespace DDStudy2022.DAL.Entities
         public DateTime Created { get; set; }
         public bool IsActive { get; set; } = true;
         // На самом деле сессия не может существовать без юзера
-        public virtual User? User { get; set; }
+        public virtual User User { get; set; } = null!;
     }
 }

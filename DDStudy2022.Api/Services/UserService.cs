@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using DDStudy2022.Api.Configs;
+using DDStudy2022.Api.Models;
 using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Api.Models.Users;
@@ -54,7 +55,7 @@ namespace DDStudy2022.Api.Services
 
         private async Task<DAL.Entities.User> GetUserById(Guid userId)
         {
-            var userEntity = await _context.Users.Include(x => x.Sessions).FirstOrDefaultAsync(u => u.Id == userId);
+            var userEntity = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (userEntity == null)
                 throw new Exception("user not found");
 
@@ -83,24 +84,63 @@ namespace DDStudy2022.Api.Services
             return await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
-        public async Task DeleteUser(Guid userId)
+        public async Task AddAvatarToUser(Guid userId, MetadataModel meta, string filePath)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await GetUserWithAvatar(userId);
             if (user != null)
             {
-                _context.Users.Remove(user);
+                var avatar = new Avatar { Author = user, MimeType = meta.MimeType, FilePath = filePath, Name = meta.Name, Size = meta.Size };
+                user.Avatar = avatar;
+
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<ICollection<SessionModel>> GetUserSessions(Guid userId)
+        public async Task<User> GetUserWithAvatar(Guid userId)
+        {
+            var user = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception("User not found");
+            return user;
+        }
+
+        public async Task<AttachmentModel> GetUserAvatar(Guid userId)
+        {
+            var user = await GetUserWithAvatar(userId);
+
+            var attachment = _mapper.Map<AttachmentModel>(user.Avatar);
+            return attachment;
+        }
+
+        // SuspendUser вместо DeleteUser
+        public async Task SuspendUser(Guid userId)
         {
             var user = await GetUserById(userId);
+            if (user == null)
+                throw new Exception("There is no user to suspend");
+            // Блокируем аккаунт юзера
+            user.IsActive = false;
+            // И деактивируем все сессии.
+            var allActiveSessions = await GetUserSessions(user.Id);
+            foreach (var session in allActiveSessions)
+                await DeactivateSession(session.RefreshToken);
+
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
+        {
+            var user = await _context.Users.Include(u => u.Sessions).FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception("User not found");
             if (user.Sessions == null)
                 throw new Exception("No active sessions for this user");
 
-            return _mapper.Map<List<SessionModel>>(user.Sessions);
+            return user.Sessions;
         }
+
+        public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
+            => _mapper.Map<List<SessionModel>>(await GetUserSessions(userId));
 
         public async Task DeactivateSession(Guid refreshToken)
         {
@@ -112,7 +152,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task<UserSession> GetSessionById(Guid id)
         {
-            var session = await _context.UserSessions.FirstOrDefaultAsync(x => x.Id == id);
+            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
             if (session == null)
                 throw new Exception("session not found");
             return session;
@@ -171,7 +211,7 @@ namespace DDStudy2022.Api.Services
                 RefreshToken = Guid.NewGuid(),
                 Created = DateTime.UtcNow,
             });
-            
+
             await _context.SaveChangesAsync();
             return GenerateTokens(session.Entity);
         }
@@ -205,7 +245,7 @@ namespace DDStudy2022.Api.Services
                 }
 
                 var user = session.User;
-                
+
                 session.RefreshToken = Guid.NewGuid();
                 await _context.SaveChangesAsync();
 

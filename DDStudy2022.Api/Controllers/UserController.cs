@@ -18,9 +18,11 @@ namespace DDStudy2022.Api.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
-        public UserController(UserService userService)
+        private readonly AttachmentService _attachmentService;
+        public UserController(UserService userService, AttachmentService attachmentService)
         {
             _userService = userService;
+            _attachmentService = attachmentService;
         }
 
         [HttpPost]
@@ -50,24 +52,23 @@ namespace DDStudy2022.Api.Controllers
         [Authorize]
         public async Task ChangeCurrentUserPassword(PasswordChangeModel model)
         {
-            var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
-            if (Guid.TryParse(userId, out var id))
+            var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            if (Guid.TryParse(userIdString, out var userId))
             {
-                var user = await _userService.GetUser(id);
-                await _userService.ChangeUserPassword(id, model.OldPassword, model.NewPassword);
+                var user = await _userService.GetUser(userId);
+                await _userService.ChangeUserPassword(userId, model.OldPassword, model.NewPassword);
             }
             else
                 throw new Exception("Seems like you don\'t exist");
         }
 
-        // Лучше конечно не удалять а замораживать аккаунты
         [HttpPost]
         [Authorize]
-        public async Task DeleteCurrentUser()
+        public async Task SuspendCurrentUser()
         {
             var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             if (Guid.TryParse(userId, out var id))
-                await _userService.DeleteUser(id);
+                await _userService.SuspendUser(id);
             else
                 throw new Exception("Seems like user don\'t exist");
         }
@@ -78,7 +79,7 @@ namespace DDStudy2022.Api.Controllers
         {
             var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             if (Guid.TryParse(userId, out var id))
-                return await _userService.GetUserSessions(id);
+                return await _userService.GetUserSessionModels(id);
             else
                 throw new Exception("There are no current sessions for this user");
         }
@@ -86,5 +87,36 @@ namespace DDStudy2022.Api.Controllers
         [HttpPost]
         [Authorize]
         public async Task DeactivateSession(SessionDeactivationModel model) => await _userService.DeactivateSession(model.RefreshToken);
+
+        [HttpPost]
+        [Authorize]
+        public async Task AddAvatarToUser(MetadataModel model)
+        {
+            var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            if (Guid.TryParse(userIdString, out var userId))
+            {
+                var tempFile = _attachmentService.GetTempFileInfo(model);
+
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "Attachments", model.TempId.ToString());
+                var destFile = new FileInfo(path);
+                if (destFile.Directory != null && !destFile.Directory.Exists)
+                    destFile.Directory.Create();
+
+                System.IO.File.Copy(tempFile.FullName, path, true);
+
+                await _userService.AddAvatarToUser(userId, model, path);
+
+            }
+            else
+                throw new Exception("Seems like you don\'t exist");
+        }
+
+        [HttpGet]
+        public async Task<FileResult> GetUserAvatar(Guid userId)
+        {
+            var attachment = await _userService.GetUserAvatar(userId);
+
+            return File(System.IO.File.ReadAllBytes(attachment.FilePath), attachment.MimeType);
+        }
     }
 }

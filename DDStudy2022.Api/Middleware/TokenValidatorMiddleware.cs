@@ -19,6 +19,16 @@ namespace DDStudy2022.Api.Middleware
             if (Guid.TryParse(sessionIdString, out var sessionId))
             {
                 var session = await userService.GetSessionById(sessionId);
+                var user = session.User;
+                // Проверка на бан, нужна просто для того чтобы выводилось правильное сообщение.
+                // При suspend'е аккаунта мы отключаем все сессии
+                if (!user.IsActive)
+                {
+                    context.Response.Clear();
+                    context.Response.StatusCode = 401;
+                    await context.Response.WriteAsync("user account is suspended");
+                }
+
                 if (!session.IsActive)
                 {
                     context.Response.Clear();

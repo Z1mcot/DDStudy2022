@@ -3,6 +3,7 @@ using System;
 using DDStudy2022.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20221106152601_userAvatarsAndAttachments")]
+    partial class userAvatarsAndAttachments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,60 +55,9 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.ToTable("Attachments", (string)null);
+                    b.ToTable("Attachments");
 
                     b.UseTptMappingStrategy();
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("PublishDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Posts", (string)null);
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostComment", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<Guid>("AuthorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long>("PostId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("PostComment", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
@@ -146,7 +98,7 @@ namespace DDStudy2022.Api.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.UserSession", b =>
@@ -171,7 +123,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions", (string)null);
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Avatar", b =>
@@ -179,18 +131,6 @@ namespace DDStudy2022.Api.Migrations
                     b.HasBaseType("DDStudy2022.DAL.Entities.Attachment");
 
                     b.ToTable("Avatars", (string)null);
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostImage", b =>
-                {
-                    b.HasBaseType("DDStudy2022.DAL.Entities.Attachment");
-
-                    b.Property<long>("PostId")
-                        .HasColumnType("bigint");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("PostImage", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Attachment", b =>
@@ -202,32 +142,6 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
-                {
-                    b.HasOne("DDStudy2022.DAL.Entities.User", null)
-                        .WithMany("Posts")
-                        .HasForeignKey("UserId");
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostComment", b =>
-                {
-                    b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DDStudy2022.DAL.Entities.Post", "Post")
-                        .WithMany("Comments")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
@@ -259,34 +173,8 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostImage", b =>
-                {
-                    b.HasOne("DDStudy2022.DAL.Entities.Attachment", null)
-                        .WithOne()
-                        .HasForeignKey("DDStudy2022.DAL.Entities.PostImage", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DDStudy2022.DAL.Entities.Post", "Post")
-                        .WithMany("Content")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("Content");
-                });
-
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
                 {
-                    b.Navigation("Posts");
-
                     b.Navigation("Sessions");
                 });
 

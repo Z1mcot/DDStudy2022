@@ -63,6 +63,8 @@ namespace DDStudy2022.Api
             builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
 
             builder.Services.AddScoped<UserService>();
+            builder.Services.AddScoped<AttachmentService>();
+            builder.Services.AddScoped<PostService>();
 
             // Аутентификация и авторизация
             builder.Services.AddAuthentication(o =>
@@ -91,6 +93,8 @@ namespace DDStudy2022.Api
                     p.RequireAuthenticatedUser();
                 });
             });
+
+            
 
             var app = builder.Build();
 

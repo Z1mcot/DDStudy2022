@@ -13,8 +13,11 @@ namespace DDStudy2022.DAL.Entities
         public string Email { get; set; } = "not entered";
         public string PasswordHash { get; set; } = "not entered";
         public DateTimeOffset BirthDate { get; set; }
-        public virtual ICollection<UserSession>? Sessions { get; set; }
-        // Пока нет смысла добавлять посты в нашу апишку, пока мы с базовым функционалом не разобрались
-        // public virtual ICollection<Post> Posts { get; set; }
+        public long? AvatarId { get; set; }
+        public Avatar? Avatar { get; set; } 
+        public virtual List<UserSession>? Sessions { get; set; }
+        public virtual List<Post>? Posts { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }
