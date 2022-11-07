@@ -131,7 +131,8 @@ namespace DDStudy2022.Api.Services
             {
                 Author = user,
                 Content = model.Content,
-                Post = post
+                Post = post,
+                PublishDate = DateTime.UtcNow
             });
 
             await _context.SaveChangesAsync();

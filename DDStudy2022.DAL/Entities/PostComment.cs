@@ -12,7 +12,7 @@ namespace DDStudy2022.DAL.Entities
         public long Id { get; set; }
         public virtual User Author { get; set; } = null!;
         public virtual Post Post { get; set; } = null!;
-        [Required]
         public string Content { get; set; } = null!;
+        public DateTime PublishDate { get; set; }
     }
 }
