@@ -52,7 +52,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.ToTable("Attachments");
+                    b.ToTable("Attachments", (string)null);
 
                     b.UseTptMappingStrategy();
                 });
@@ -78,7 +78,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Posts");
+                    b.ToTable("Posts", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.PostComment", b =>
@@ -149,7 +149,7 @@ namespace DDStudy2022.Api.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.UserSession", b =>
@@ -174,7 +174,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions");
+                    b.ToTable("UserSessions", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Avatar", b =>
