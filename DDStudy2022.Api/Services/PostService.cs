@@ -6,6 +6,7 @@ using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace DDStudy2022.Api.Services
 {
@@ -68,24 +69,42 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetUserPosts(Guid userId)
+        public async Task<List<PostModel>> GetUserPostModels(Guid userId)
         {
             var user = await GetUser(userId);
 
             var posts = new List<PostModel>();
             foreach (var item in user.Posts!)
             {
-                posts.Add(await GetPost(item.Id));
+                posts.Add(await GetPostModel(item.Id));
             }
 
             return posts;
         }
 
-        public async Task<PostModel> GetPost(long postId)
+        public async Task<PostModel> GetPostModel(long postId)
         {
             var post = await GetPostWithContents(postId);
 
             return _mapper.Map<PostModel>(post);
+        }
+
+        private async Task<Post> GetPostById(long postId)
+        {
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+                throw new Exception("Post doesn\'t exist");
+
+            return post;
+        }
+
+        public async Task<Guid> GetPostAuthorId(long postId)
+        {
+            var post = await _context.Posts.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+                throw new Exception("Post doesn\'t exist");
+
+            return post.User.Id;
         }
 
         private async Task<Post> GetPostWithContents(long postId)
@@ -99,6 +118,7 @@ namespace DDStudy2022.Api.Services
 
         private async Task<Post> GetPostWithComments(long postId)
         {
+            // Заменить на ProjectTo
             var post = await _context.Posts.Include(p => p.User)
                                            .Include(p => p.Comments)
                                            .ThenInclude(p => p.Author)
@@ -107,6 +127,25 @@ namespace DDStudy2022.Api.Services
                 throw new Exception("Post doesn\'t exist");
             
             return post;
+        }
+
+        public async Task UnlistPost(long postId)
+        {
+            var post = await GetPostById(postId);
+            post.IsShown = false;
+            
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ModifyPost(long postId, ModifyPostModel model)
+        {
+            var post = await GetPostById(postId);
+
+            post.Description = model.Description;
+            post.IsModified = true;
+            // post.Content = model.Content;
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<Attachment> GetAttachmentById(long attachmentId)

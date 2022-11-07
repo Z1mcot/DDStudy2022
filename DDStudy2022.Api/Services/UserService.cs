@@ -171,6 +171,8 @@ namespace DDStudy2022.Api.Services
             var dtNow = DateTime.Now;
             if (session.User == null)
                 throw new Exception("somehow we managed to create session without user");
+            if (!session.User.IsActive)
+                throw new Exception("your account has been suspended");
 
             var accessJwt = new JwtSecurityToken(
                     issuer: _config.Issuer,

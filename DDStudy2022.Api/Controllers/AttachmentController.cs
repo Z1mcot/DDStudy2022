@@ -1,4 +1,5 @@
-﻿using DDStudy2022.Api.Models;
+﻿using AutoMapper.Configuration.Annotations;
+using DDStudy2022.Api.Models;
 using DDStudy2022.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -36,14 +37,46 @@ namespace DDStudy2022.Api.Controllers
                 throw new Exception("user not found");
         }
 
+        [HttpPost]
+        [Authorize]
+        public async Task DeletePost(long postId)
+        {
+            var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            var authorId = await _postService.GetPostAuthorId(postId);
+
+            if (Guid.TryParse(userIdString, out var userId) 
+                && authorId == userId)
+            {
+                await _postService.UnlistPost(postId);
+            }
+            else
+                throw new Exception("only author can delete his posts");
+        }
+
+        // Нужно придумать, как получить весь content поста и вывести его в модель
+        [HttpPost]
+        [Authorize]
+        private async Task ModifyPost(long postId, ModifyPostModel model)
+        {
+            var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
+            var authorId = await _postService.GetPostAuthorId(postId);
+
+            if (Guid.TryParse(userIdString, out var userId)
+                && authorId == userId)
+            {
+                await _postService.ModifyPost(postId, model);
+            }
+            else
+                throw new Exception("only author can modify his posts");
+        }
+
         [HttpGet]
         public async Task<List<PostModel>> ShowUserPosts(Guid userId)
-            => await _postService.GetUserPosts(userId);
+            => await _postService.GetUserPostModels(userId);
 
         [HttpGet]
         public async Task<PostModel> ShowPost(long postId) 
-            => await _postService.GetPost(postId);
-
+            => await _postService.GetPostModel(postId);
 
 
         [HttpGet]

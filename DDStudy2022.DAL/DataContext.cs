@@ -20,6 +20,14 @@ namespace DDStudy2022.DAL
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Name)
                 .IsUnique();
+            modelBuilder.Entity<User>()
+                .Property(u => u.IsActive)
+                .HasDefaultValue(true);
+
+            modelBuilder.Entity<Post>()
+                .Property(p => p.IsShown)
+                .HasDefaultValue(true);
+
             modelBuilder.Entity<Avatar>()
                 .ToTable(nameof(Avatars));
             modelBuilder.Entity<PostAttachment>()

@@ -18,6 +18,6 @@ namespace DDStudy2022.DAL.Entities
         public virtual List<UserSession>? Sessions { get; set; }
         public virtual List<Post>? Posts { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
     }
 }

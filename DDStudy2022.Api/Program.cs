@@ -63,8 +63,8 @@ namespace DDStudy2022.Api
             builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
 
             builder.Services.AddScoped<UserService>();
-            builder.Services.AddScoped<AttachmentService>();
-            builder.Services.AddScoped<PostService>();
+            builder.Services.AddTransient<AttachmentService>();
+            builder.Services.AddTransient<PostService>();
 
             // Аутентификация и авторизация
             builder.Services.AddAuthentication(o =>

@@ -6,5 +6,6 @@
         public string? Description { get; set; }
         public List<PostAttachmentModel> Content { get; set; } = null!;
         public DateTime PublishDate { get; set; }
+        public bool IsModified { get; set; } = false;
     }
 }
