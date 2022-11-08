@@ -1,7 +1,11 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Configs;
 using DDStudy2022.Api.Models;
+using DDStudy2022.Api.Models.Attachments;
+using DDStudy2022.Api.Models.Comments;
+using DDStudy2022.Api.Models.Posts;
 using DDStudy2022.Api.Models.Sessions;
+using DDStudy2022.Api.Models.Users;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,125 +18,108 @@ namespace DDStudy2022.Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
-        private readonly AttachmentService _attachmentService;
-        private readonly UserService _userService;
 
+        private Func<AttachmentModel, string?>? _linkContentGenerator;
+        private Func<UserModel, string?>? _linkAvatarGenerator;
+        public void SetLinkGenerator(Func<AttachmentModel, string?> linkContentGenerator, Func<UserModel, string?> linkAvatarGenerator)
+        {
+            _linkAvatarGenerator = linkAvatarGenerator;
+            _linkContentGenerator = linkContentGenerator;
+        }
 
-        public PostService(IMapper mapper, DataContext context, AttachmentService attachmentService, UserService userService)
+        public PostService(IMapper mapper, DataContext context)
         {
             _mapper = mapper;
             _context = context;
-            _attachmentService = attachmentService;
-            _userService = userService;
         }
 
 
 
-        public async Task CreatePost(Guid userId, CreatePostModel model)
+        public async Task CreatePost(CreatePostModel model)
         {
-            var user = await _userService.GetUserWithPosts(userId);
-            var postFiles = new List<PostAttachment>();
-            
-            var destFolder = Path.Combine(Directory.GetCurrentDirectory(), "Attachments");
-            if (!string.IsNullOrEmpty(destFolder) && !Directory.Exists(destFolder))
-                Directory.CreateDirectory(destFolder);
+            var dbModel = _mapper.Map<Post>(model);
 
-            foreach (var attachment in model.Attachments)
-            {
-                var meta = await _attachmentService.UploadFile(attachment);
-                
-                var tempFile = _attachmentService.GetTempFileInfo(meta);
-                var destFile = Path.Combine(destFolder, meta.TempId.ToString());
-                System.IO.File.Copy(tempFile.FullName, destFile, true);
-
-                postFiles.Add(new PostAttachment
-                {
-                    Author = user,
-                    FilePath = destFile,
-                    MimeType = meta.MimeType,
-                    Name = meta.Name,
-                    Size = meta.Size,
-                });
-            }
-
-            user.Posts!.Add(new Post
-            {
-                Content = postFiles,
-                Description = model.Description ?? "",
-                PublishDate = DateTime.UtcNow,
-            });
-
+            await _context.Posts.AddAsync(dbModel);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetPostModels(Guid userId)
+        public async Task<List<PostModel>> GetPosts(int skip, int take)
         {
-            var user = await _userService.GetUserWithPosts(userId);
+            var posts = await _context.Posts
+                .Include(x => x.Author).ThenInclude(x => x.Avatar)
+                .Include(x => x.Content).AsNoTracking().Take(take).Skip(skip).ToListAsync();
 
-            var posts = new List<PostModel>();
-            foreach (var item in user.Posts!)
+            var res = posts.Select(post =>
+                new PostModel
+                {
+                    Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                    Description = post.Description,
+                    Id = post.Id,
+                    Content = post.Content.Select(x => 
+                        new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+                }).ToList();
+
+            return res;
+        }
+
+        public async Task<AttachmentModel> GetPostContent(Guid postContentId)
+        {
+            var res = await _context.PostContent.FirstOrDefaultAsync(x => x.Id == postContentId);
+
+            return _mapper.Map<AttachmentModel>(res);
+        }
+
+        public async Task<PostModel> GetPostById(Guid postId)
+        {
+            var post = await _context.Posts
+                .Include(x => x.Author).ThenInclude(x => x.Avatar)
+                .Include(x => x.Content).AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId);
+            if (post == null)
+                throw new Exception("post not found");
+
+            var res = new PostModel
             {
-                posts.Add(await GetPostModel(item.Id));
-            }
+                Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                Description = post.Description,
+                Id = post.Id,
+                Content = post.Content.Select(x =>
+                    new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+            };
 
-            return posts;
+            return res;
         }
 
-        public async Task<PostModel> GetPostModel(Guid postId)
+        public async Task<List<PostModel>> GetUserPosts(Guid userId, int skip, int take)
         {
-            var post = await GetPostWithContents(postId);
+            var posts = await _context.Posts
+                .Include(x => x.Author).ThenInclude(x => x.Avatar)
+                .Include(x => x.Content).AsNoTracking().Where(p => p.AuthorId == userId).Take(take).Skip(skip).ToListAsync();
 
-            return _mapper.Map<PostModel>(post);
-        }
+            var res = posts.Select(post =>
+                new PostModel
+                {
+                    Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                    Description = post.Description,
+                    Id = post.Id,
+                    Content = post.Content.Select(x =>
+                        new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+                }).ToList();
 
-        private async Task<Post> GetPostById(Guid postId)
-        {
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-                throw new Exception("Post doesn\'t exist");
-
-            return post;
-        }
-
-        public async Task<Guid> GetPostAuthorId(Guid postId)
-        {
-            var post = await _context.Posts.Include(p => p.Author).FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-                throw new Exception("Post doesn\'t exist");
-
-            return post.Author.Id;
-        }
-
-        private async Task<Post> GetPostWithContents(Guid postId)
-        {
-            var post = await _context.Posts.Include(p => p.Content).FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-                throw new Exception("Post doesn\'t exist");
-
-            return post;
-        }
-
-        private async Task<Post> GetPostWithComments(Guid postId)
-        {
-            // Заменить на ProjectTo
-            var post = await _context.Posts.Include(p => p.Author)
-                                           .Include(p => p.Comments)
-                                           .ThenInclude(p => p.Author)
-                                           .FirstOrDefaultAsync(p => p.Id == postId);
-            if (post == null)
-                throw new Exception("Post doesn\'t exist");
-            
-            return post;
+            return res;
         }
 
         public async Task UnlistPost(Guid postId)
         {
-            var post = await GetPostById(postId);
+            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            if (post == null)
+                throw new Exception("post not found");
+
             post.IsShown = false;
             
             await _context.SaveChangesAsync();
         }
 
+        /*
         public async Task ModifyPost(Guid postId, ModifyPostModel model)
         {
             var post = await GetPostById(postId);
@@ -143,28 +130,31 @@ namespace DDStudy2022.Api.Services
 
             await _context.SaveChangesAsync();
         }
+        */
 
-
-
-        public async Task<List<CommentModel>> GetPostComments(Guid postId)
+        public async Task<List<CommentModel>> GetPostComments(Guid postId, int skip, int take)
         {
-            var post = await GetPostWithComments(postId);
+            var comments = await _context.PostComments
+                .Include(c => c.Author).ThenInclude(x => x.Avatar)
+                .AsNoTracking().Take(take).Skip(skip).ToListAsync();
 
-            return _mapper.Map<List<CommentModel>>(post.Comments);
+            var res = comments.Select(comment =>
+                new CommentModel
+                {
+                    // Всё так и задуманно, потом я переделаю автора с Guid на UserAvatarModel, пока что я не могу побороть автомаппер
+                    AuthorId = comment.AuthorId,
+                    Content = comment.Content,
+                    PublishDate = comment.PublishDate.UtcDateTime
+                }).ToList();
+
+            return res;
         }
 
-        public async Task AddComment(Guid userId, AddCommentModel model)
+        public async Task AddComment(AddCommentModel model)
         {
-            var post = await GetPostWithComments(model.PostId);
-            var user = await _userService.GetUserWithPosts(userId);
+            var dbModel = _mapper.Map<PostComment>(model);
 
-            post.Comments!.Add(new PostComment
-            {
-                Author = user,
-                Content = model.Content,
-                PublishDate = DateTime.UtcNow
-            });
-
+            await _context.PostComments.AddAsync(dbModel);
             await _context.SaveChangesAsync();
         }
     }

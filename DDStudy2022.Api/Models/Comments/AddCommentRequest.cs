@@ -1,12 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace DDStudy2022.Api.Models
+namespace DDStudy2022.Api.Models.Comments
 {
-    public class AddCommentModel
+    public class AddCommentRequest
     {
         [Required]
         public Guid PostId { get; set; }
         public string Content { get; set; } = null!;
-
     }
 }

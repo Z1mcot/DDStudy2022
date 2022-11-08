@@ -6,32 +6,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DDStudy2022.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class conversionFromLongIdToGuid : Migration
+    public partial class totalRestartAfterSeriousFuckUp : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<bool>(
-                name: "IsActive",
-                table: "Users",
-                type: "boolean",
-                nullable: false,
-                defaultValue: true,
-                oldClrType: typeof(bool),
-                oldType: "boolean");
-
-            migrationBuilder.AddColumn<Guid>(
-                name: "AvatarId",
-                table: "Users",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.AddColumn<bool>(
-                name: "IsPrivate",
-                table: "Users",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    BirthDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    IsPrivate = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "Attachments",
@@ -63,7 +58,7 @@ namespace DDStudy2022.Api.Migrations
                     AuthorId = table.Column<Guid>(type: "uuid", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     PublishDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsShown = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    IsShown = table.Column<bool>(type: "boolean", nullable: false),
                     IsModified = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -78,10 +73,32 @@ namespace DDStudy2022.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserSessions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RefreshToken = table.Column<Guid>(type: "uuid", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSessions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserSessions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Avatars",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OwnerId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -90,6 +107,12 @@ namespace DDStudy2022.Api.Migrations
                         name: "FK_Avatars_Attachments_Id",
                         column: x => x.Id,
                         principalTable: "Attachments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Avatars_Users_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -145,21 +168,15 @@ namespace DDStudy2022.Api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Users_AvatarId",
-                table: "Users",
-                column: "AvatarId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Name",
-                table: "Users",
-                column: "Name",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Attachments_AuthorId",
                 table: "Attachments",
                 column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Avatars_OwnerId",
+                table: "Avatars",
+                column: "OwnerId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PostAttachment_PostId",
@@ -181,21 +198,27 @@ namespace DDStudy2022.Api.Migrations
                 table: "Posts",
                 column: "AuthorId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Users_Avatars_AvatarId",
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
                 table: "Users",
-                column: "AvatarId",
-                principalTable: "Avatars",
-                principalColumn: "Id");
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Name",
+                table: "Users",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSessions_UserId",
+                table: "UserSessions",
+                column: "UserId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Users_Avatars_AvatarId",
-                table: "Users");
-
             migrationBuilder.DropTable(
                 name: "Avatars");
 
@@ -206,35 +229,16 @@ namespace DDStudy2022.Api.Migrations
                 name: "PostComments");
 
             migrationBuilder.DropTable(
+                name: "UserSessions");
+
+            migrationBuilder.DropTable(
                 name: "Attachments");
 
             migrationBuilder.DropTable(
                 name: "Posts");
 
-            migrationBuilder.DropIndex(
-                name: "IX_Users_AvatarId",
-                table: "Users");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Users_Name",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "AvatarId",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "IsPrivate",
-                table: "Users");
-
-            migrationBuilder.AlterColumn<bool>(
-                name: "IsActive",
-                table: "Users",
-                type: "boolean",
-                nullable: false,
-                oldClrType: typeof(bool),
-                oldType: "boolean",
-                oldDefaultValue: true);
+            migrationBuilder.DropTable(
+                name: "Users");
         }
     }
 }

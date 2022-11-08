@@ -20,13 +20,6 @@ namespace DDStudy2022.DAL
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Name)
                 .IsUnique();
-            modelBuilder.Entity<User>()
-                .Property(u => u.IsActive)
-                .HasDefaultValue(true);
-
-            modelBuilder.Entity<Post>()
-                .Property(p => p.IsShown)
-                .HasDefaultValue(true);
 
             modelBuilder.Entity<Avatar>()
                 .ToTable(nameof(Avatars));
@@ -43,7 +36,7 @@ namespace DDStudy2022.DAL
         public DbSet<Attachment> Attachments => Set<Attachment>();
         public DbSet<Avatar> Avatars => Set<Avatar>();
         public DbSet<Post> Posts => Set<Post>();
-        public DbSet<PostAttachment> PostImages => Set<PostAttachment>();
+        public DbSet<PostAttachment> PostContent => Set<PostAttachment>();
         public DbSet<PostComment> PostComments => Set<PostComment>();
     }
 }

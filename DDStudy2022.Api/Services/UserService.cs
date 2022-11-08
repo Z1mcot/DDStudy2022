@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using DDStudy2022.Api.Configs;
-using DDStudy2022.Api.Models;
+using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Api.Models.Users;
@@ -20,62 +20,57 @@ namespace DDStudy2022.Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
-        private readonly AuthConfig _config;
+        private readonly AuthService _authService;
+        private Func<UserModel, string?>? _linkGenerator;
+        public void SetLinkGenerator(Func<UserModel, string?> linkGenerator)
+        {
+            _linkGenerator = linkGenerator;
+        }
 
-        public UserService(IMapper mapper, DataContext context, IOptions<AuthConfig> authConfig)
+        public UserService(IMapper mapper, DataContext context, AuthService authService)
         {
             _mapper = mapper;
             _context = context;
-            _config = authConfig.Value;
+            _authService = authService;
         }
 
-        public async Task CreateUser(CreateUserModel model)
+        public async Task<Guid> CreateUser(CreateUserModel model)
         {
             var dbUser = _mapper.Map<DAL.Entities.User>(model);
-            await _context.Users.AddAsync(dbUser);
+            var t = await _context.Users.AddAsync(dbUser);
             await _context.SaveChangesAsync();
-        }
-        public async Task<List<UserModel>> GetUsers()
-        {
-            // NoTracking не следит за изменениями тех сущностей которые мы вернули по нашему запросу. Удобно если мы только читаем
-            return await _context.Users.AsNoTracking().ProjectTo<UserModel>(_mapper.ConfigurationProvider).ToListAsync();
+            return t.Entity.Id;
         }
 
-        private async Task<DAL.Entities.User> GetUserByCredentials(string login, string password)
+        public async Task<IEnumerable<UserAvatarModel>> GetUsers()
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email.ToLower() == login.ToLower());
-            if (user == null)
-                throw new Exception("User is not present in database");
-
-            if (!HashHelper.Verify(password, user.PasswordHash))
-                throw new Exception("Wrong password");
-
-            return user;
+            var users = await _context.Users.AsNoTracking().ProjectTo<UserModel>(_mapper.ConfigurationProvider).ToListAsync();
+            return users.Select(x => new UserAvatarModel(x, _linkGenerator));
         }
 
-        private async Task<DAL.Entities.User> GetUserById(Guid userId)
+        private async Task<User> GetUserById(Guid userId)
         {
-            var userEntity = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
             if (userEntity == null)
                 throw new Exception("user not found");
 
             return userEntity;
         }
 
-        public async Task<UserModel> GetUserModel(Guid userId)
+        public async Task<UserAvatarModel> GetUserModel(Guid userId)
         {
             var user = await GetUserById(userId);
 
-            return _mapper.Map<UserModel>(user);
+            return new UserAvatarModel(_mapper.Map<UserModel>(user), user.Avatar == null ? null : _linkGenerator);
         }
 
-        public async Task<DAL.Entities.User> GetUserWithPosts(Guid userId)
+        /*public async Task<DAL.Entities.User> GetUserWithPosts(Guid userId)
         {
             var user = await _context.Users.Include(u => u.Posts).FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 throw new Exception("user not found");
             return user;
-        }
+        }*/
 
         public async Task ChangeUserPassword(Guid userId, string OldPassword, string newPassword)
         {
@@ -94,7 +89,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task AddAvatarToUser(Guid userId, MetadataModel meta, string filePath)
         {
-            var user = await GetUserWithAvatar(userId);
+            var user = await _context.Users.Include(x => x.Avatar).FirstOrDefaultAsync(x => x.Id == userId);
             if (user != null)
             {
                 var avatar = new Avatar { Author = user, MimeType = meta.MimeType, FilePath = filePath, Name = meta.Name, Size = meta.Size };
@@ -104,19 +99,11 @@ namespace DDStudy2022.Api.Services
             }
         }
 
-        public async Task<User> GetUserWithAvatar(Guid userId)
-        {
-            var user = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new Exception("User not found");
-            return user;
-        }
-
         public async Task<AttachmentModel> GetUserAvatar(Guid userId)
         {
-            var user = await GetUserWithAvatar(userId);
-
+            var user = await GetUserById(userId);
             var attachment = _mapper.Map<AttachmentModel>(user.Avatar);
+
             return attachment;
         }
 
@@ -125,147 +112,21 @@ namespace DDStudy2022.Api.Services
         {
             var user = await GetUserById(userId);
             if (user == null)
-                throw new Exception("There is no user to suspend");
+                throw new Exception("user not found");
             // Блокируем аккаунт юзера
             user.IsActive = false;
+
             // И деактивируем все сессии.
-            var allActiveSessions = await GetUserSessions(user.Id);
+            var allActiveSessions = await _authService.GetUserSessions(user.Id);
             foreach (var session in allActiveSessions)
-                await DeactivateSession(session.RefreshToken);
+                await _authService.DeactivateSession(session.RefreshToken);
 
             await _context.SaveChangesAsync();
-        }
-
-        private async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
-        {
-            var user = await _context.Users.Include(u => u.Sessions).FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new Exception("User not found");
-            if (user.Sessions == null)
-                throw new Exception("No active sessions for this user");
-
-            return user.Sessions;
         }
 
         public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
-            => _mapper.Map<List<SessionModel>>(await GetUserSessions(userId));
-
-        public async Task DeactivateSession(Guid refreshToken)
-        {
-            var session = await GetSessionByRefreshToken(refreshToken);
-            session.IsActive = false;
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<UserSession> GetSessionById(Guid id)
-        {
-            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
-            if (session == null)
-                throw new Exception("session not found");
-            return session;
-        }
-
-        private async Task<UserSession> GetSessionByRefreshToken(Guid id)
-        {
-            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);
-            if (session == null)
-                throw new Exception("session not found");
-            return session;
-        }
-
-        public TokenModel GenerateTokens(DAL.Entities.UserSession session)
-        {
-            var dtNow = DateTime.Now;
-            if (session.User == null)
-                throw new Exception("somehow we managed to create session without user");
-            if (!session.User.IsActive)
-                throw new Exception("your account has been suspended");
-
-            var accessJwt = new JwtSecurityToken(
-                    issuer: _config.Issuer,
-                    audience: _config.Audience,
-                    notBefore: dtNow,
-                    claims: new Claim[]
-                    {
-                        new Claim(ClaimsIdentity.DefaultNameClaimType, session.User.Name),
-                        new Claim("sessionId", session.Id.ToString()),
-                        new Claim("id", session.User.Id.ToString()),
-                    },
-                    expires: DateTime.Now.AddMinutes(_config.Lifetime),
-                    signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
-                );
-            var encodedAccessJwt = new JwtSecurityTokenHandler().WriteToken(accessJwt);
-
-            var refreshJwt = new JwtSecurityToken(
-                    notBefore: dtNow,
-                    claims: new Claim[]
-                    {
-                        new Claim("refreshToken", session.RefreshToken.ToString()),
-                    },
-                    expires: DateTime.Now.AddHours(_config.Lifetime),
-                    signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
-                );
-            var encodedRefreshJwt = new JwtSecurityTokenHandler().WriteToken(refreshJwt);
-
-            return new TokenModel(encodedAccessJwt, encodedRefreshJwt);
-        }
-
-        public async Task<TokenModel> GetToken(string login, string password)
-        {
-            var user = await GetUserByCredentials(login, password);
-            var session = await _context.UserSessions.AddAsync(new DAL.Entities.UserSession
-            {
-                Id = Guid.NewGuid(),
-                User = user,
-                RefreshToken = Guid.NewGuid(),
-                Created = DateTime.UtcNow,
-            });
-
-            await _context.SaveChangesAsync();
-            return GenerateTokens(session.Entity);
-        }
-
-        public async Task<TokenModel> GetTokenByRefreshToken(string refreshToken)
-        {
-            var validParams = new TokenValidationParameters
-            {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateIssuerSigningKey = true,
-                ValidateLifetime = true,
-                IssuerSigningKey = _config.SymmetricSecurityKey
-            };
-            var principal = new JwtSecurityTokenHandler().ValidateToken(refreshToken, validParams, out var securityToken);
-
-            if (securityToken is not JwtSecurityToken jwtToken
-                || !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
-                StringComparison.InvariantCultureIgnoreCase))
-            {
-                throw new SecurityTokenException("invalid token");
-            }
-
-            if (principal.Claims.FirstOrDefault(p => p.Type == "refreshToken")?.Value is string refreshIdString
-                && Guid.TryParse(refreshIdString, out var refreshId))
-            {
-                var session = await GetSessionByRefreshToken(refreshId);
-                if (!session.IsActive)
-                {
-                    throw new Exception("session timed out");
-                }
-
-                var user = session.User;
-
-                session.RefreshToken = Guid.NewGuid();
-                await _context.SaveChangesAsync();
-
-                return GenerateTokens(session);
-            }
-            else
-            {
-                throw new SecurityTokenException("invalid token");
-            }
-        }
+            => _mapper.Map<List<SessionModel>>(await _authService.GetUserSessions(userId));
+        
 
     }
 }

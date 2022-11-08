@@ -1,4 +1,6 @@
 ﻿using DDStudy2022.Api.Services;
+using DDStudy2022.Common.Consts;
+using DDStudy2022.Common.Extensions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.CompilerServices;
 
@@ -12,20 +14,18 @@ namespace DDStudy2022.Api.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, UserService userService)
+        public async Task InvokeAsync(HttpContext context, AuthService authService)
         {
             var isOk = true;
-            var sessionIdString = context.User.Claims.FirstOrDefault(x => x.Type == "sessionId")?.Value;
-            if (Guid.TryParse(sessionIdString, out var sessionId))
+            var sessionId = context.User.GetClaimValue<Guid>(ClaimNames.SessionId);
+            if (sessionId != default)
             {
-                var session = await userService.GetSessionById(sessionId);
-                var user = session.User;
-
+                var session = await authService.GetSessionById(sessionId);
                 if (!session.IsActive)
                 {
+                    isOk = false;
                     context.Response.Clear();
                     context.Response.StatusCode = 401;
-                    await context.Response.WriteAsync("session is not active");
                 }
             }
             if (isOk)

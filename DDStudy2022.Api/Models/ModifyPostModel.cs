@@ -1,4 +1,5 @@
-﻿using DDStudy2022.DAL.Entities;
+﻿using DDStudy2022.Api.Models.Attachments;
+using DDStudy2022.DAL.Entities;
 
 namespace DDStudy2022.Api.Models
 {

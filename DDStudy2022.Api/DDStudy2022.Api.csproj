@@ -23,4 +23,8 @@
     <ProjectReference Include="..\DDStudy2022.DAL\DDStudy2022.DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

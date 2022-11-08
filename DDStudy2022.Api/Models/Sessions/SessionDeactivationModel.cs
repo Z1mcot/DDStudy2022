@@ -1,6 +1,6 @@
 ﻿namespace DDStudy2022.Api.Models.Sessions
 {
-    public class SessionDeactivationModel
+    public class SessionDeactivationRequest
     {
         public Guid RefreshToken { get; set; }
     }

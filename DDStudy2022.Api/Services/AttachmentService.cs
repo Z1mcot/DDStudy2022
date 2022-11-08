@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Configs;
-using DDStudy2022.Api.Models;
+using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -10,13 +10,10 @@ namespace DDStudy2022.Api.Services
 {
     public class AttachmentService
     {
-        private readonly IMapper _mapper;
-        private readonly DataContext _context;
 
-        public AttachmentService(IMapper mapper, DataContext context)
+        public AttachmentService()
         {
-            _mapper = mapper;
-            _context = context;
+            
         }
 
         public async Task<MetadataModel> UploadFile(IFormFile file)
@@ -57,23 +54,6 @@ namespace DDStudy2022.Api.Services
                 res.Add(await UploadFile(file));
             }
             return res;
-        }
-
-        public FileInfo GetTempFileInfo(MetadataModel model)
-        {
-            var tempFile = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
-            if (!tempFile.Exists)
-                throw new Exception("file not found");
-            return tempFile;
-        }
-
-        public async Task<Attachment> GetAttachmentById(Guid attachmentId)
-        {
-            var attachment = await _context.Attachments.FirstOrDefaultAsync(p => p.Id == attachmentId);
-            if (attachment == null)
-                throw new Exception("attachment not found");
-
-            return attachment;
         }
 
 

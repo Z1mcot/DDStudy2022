@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20221108120320_conversionFromLongIdToGuid")]
-    partial class conversionFromLongIdToGuid
+    [Migration("20221108230732_totalRestartAfterSeriousFuckUp")]
+    partial class totalRestartAfterSeriousFuckUp
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -74,9 +74,7 @@ namespace DDStudy2022.Api.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsShown")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("PublishDate")
                         .HasColumnType("timestamp with time zone");
@@ -122,9 +120,6 @@ namespace DDStudy2022.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("AvatarId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("BirthDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -133,9 +128,7 @@ namespace DDStudy2022.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("boolean");
@@ -149,9 +142,6 @@ namespace DDStudy2022.Api.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AvatarId")
-                        .IsUnique();
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -191,6 +181,12 @@ namespace DDStudy2022.Api.Migrations
                 {
                     b.HasBaseType("DDStudy2022.DAL.Entities.Attachment");
 
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
+
                     b.ToTable("Avatars", (string)null);
                 });
 
@@ -220,7 +216,7 @@ namespace DDStudy2022.Api.Migrations
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
-                        .WithMany("Posts")
+                        .WithMany()
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -243,19 +239,10 @@ namespace DDStudy2022.Api.Migrations
                     b.Navigation("Author");
                 });
 
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
-                {
-                    b.HasOne("DDStudy2022.DAL.Entities.Avatar", "Avatar")
-                        .WithOne("User")
-                        .HasForeignKey("DDStudy2022.DAL.Entities.User", "AvatarId");
-
-                    b.Navigation("Avatar");
-                });
-
             modelBuilder.Entity("DDStudy2022.DAL.Entities.UserSession", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "User")
-                        .WithMany("Sessions")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -270,6 +257,14 @@ namespace DDStudy2022.Api.Migrations
                         .HasForeignKey("DDStudy2022.DAL.Entities.Avatar", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("DDStudy2022.DAL.Entities.User", "Owner")
+                        .WithOne("Avatar")
+                        .HasForeignKey("DDStudy2022.DAL.Entities.Avatar", "OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.PostAttachment", b =>
@@ -298,15 +293,7 @@ namespace DDStudy2022.Api.Migrations
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
                 {
-                    b.Navigation("Posts");
-
-                    b.Navigation("Sessions");
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Avatar", b =>
-                {
-                    b.Navigation("User")
-                        .IsRequired();
+                    b.Navigation("Avatar");
                 });
 #pragma warning restore 612, 618
         }
