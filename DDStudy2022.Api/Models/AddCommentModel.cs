@@ -5,8 +5,7 @@ namespace DDStudy2022.Api.Models
     public class AddCommentModel
     {
         [Required]
-        public long PostId { get; set; }
-        [Required]
+        public Guid PostId { get; set; }
         public string Content { get; set; } = null!;
 
     }

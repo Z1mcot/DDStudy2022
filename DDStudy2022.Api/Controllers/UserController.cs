@@ -43,7 +43,7 @@ namespace DDStudy2022.Api.Controllers
         {
             var userId = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             if (Guid.TryParse(userId, out var id))
-                return await _userService.GetUser(id);
+                return await _userService.GetUserModel(id);
             else
                 throw new Exception("Seems like you don\'t exist");
         }
@@ -55,7 +55,7 @@ namespace DDStudy2022.Api.Controllers
             var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             if (Guid.TryParse(userIdString, out var userId))
             {
-                var user = await _userService.GetUser(userId);
+                var user = await _userService.GetUserModel(userId);
                 await _userService.ChangeUserPassword(userId, model.OldPassword, model.NewPassword);
             }
             else

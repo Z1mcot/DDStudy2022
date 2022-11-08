@@ -15,26 +15,22 @@ namespace DDStudy2022.Api.Services
         private readonly IMapper _mapper;
         private readonly DataContext _context;
         private readonly AttachmentService _attachmentService;
+        private readonly UserService _userService;
 
 
-        public PostService(IMapper mapper, DataContext context, AttachmentService attachmentService)
+        public PostService(IMapper mapper, DataContext context, AttachmentService attachmentService, UserService userService)
         {
             _mapper = mapper;
             _context = context;
             _attachmentService = attachmentService;
+            _userService = userService;
         }
 
-        private async Task<DAL.Entities.User> GetUser(Guid userId)
-        {
-            var user = await _context.Users.Include(u => u.Posts).FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new Exception("user not found");
-            return user;
-        }
+
 
         public async Task CreatePost(Guid userId, CreatePostModel model)
         {
-            var user = await GetUser(userId);
+            var user = await _userService.GetUserWithPosts(userId);
             var postFiles = new List<PostAttachment>();
             
             var destFolder = Path.Combine(Directory.GetCurrentDirectory(), "Attachments");
@@ -69,9 +65,9 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetUserPostModels(Guid userId)
+        public async Task<List<PostModel>> GetPostModels(Guid userId)
         {
-            var user = await GetUser(userId);
+            var user = await _userService.GetUserWithPosts(userId);
 
             var posts = new List<PostModel>();
             foreach (var item in user.Posts!)
@@ -82,14 +78,14 @@ namespace DDStudy2022.Api.Services
             return posts;
         }
 
-        public async Task<PostModel> GetPostModel(long postId)
+        public async Task<PostModel> GetPostModel(Guid postId)
         {
             var post = await GetPostWithContents(postId);
 
             return _mapper.Map<PostModel>(post);
         }
 
-        private async Task<Post> GetPostById(long postId)
+        private async Task<Post> GetPostById(Guid postId)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
@@ -98,16 +94,16 @@ namespace DDStudy2022.Api.Services
             return post;
         }
 
-        public async Task<Guid> GetPostAuthorId(long postId)
+        public async Task<Guid> GetPostAuthorId(Guid postId)
         {
-            var post = await _context.Posts.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == postId);
+            var post = await _context.Posts.Include(p => p.Author).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
                 throw new Exception("Post doesn\'t exist");
 
-            return post.User.Id;
+            return post.Author.Id;
         }
 
-        private async Task<Post> GetPostWithContents(long postId)
+        private async Task<Post> GetPostWithContents(Guid postId)
         {
             var post = await _context.Posts.Include(p => p.Content).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
@@ -116,10 +112,10 @@ namespace DDStudy2022.Api.Services
             return post;
         }
 
-        private async Task<Post> GetPostWithComments(long postId)
+        private async Task<Post> GetPostWithComments(Guid postId)
         {
             // Заменить на ProjectTo
-            var post = await _context.Posts.Include(p => p.User)
+            var post = await _context.Posts.Include(p => p.Author)
                                            .Include(p => p.Comments)
                                            .ThenInclude(p => p.Author)
                                            .FirstOrDefaultAsync(p => p.Id == postId);
@@ -129,7 +125,7 @@ namespace DDStudy2022.Api.Services
             return post;
         }
 
-        public async Task UnlistPost(long postId)
+        public async Task UnlistPost(Guid postId)
         {
             var post = await GetPostById(postId);
             post.IsShown = false;
@@ -137,7 +133,7 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ModifyPost(long postId, ModifyPostModel model)
+        public async Task ModifyPost(Guid postId, ModifyPostModel model)
         {
             var post = await GetPostById(postId);
 
@@ -148,16 +144,9 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Attachment> GetAttachmentById(long attachmentId)
-        {
-            var attachment = await _context.Attachments.FirstOrDefaultAsync(p => p.Id == attachmentId);
-            if (attachment == null)
-                throw new Exception("attachment not found");
 
-            return attachment;
-        }
 
-        public async Task<List<CommentModel>> GetPostComments(long postId)
+        public async Task<List<CommentModel>> GetPostComments(Guid postId)
         {
             var post = await GetPostWithComments(postId);
 
@@ -167,13 +156,12 @@ namespace DDStudy2022.Api.Services
         public async Task AddComment(Guid userId, AddCommentModel model)
         {
             var post = await GetPostWithComments(model.PostId);
-            var user = await GetUser(userId);
+            var user = await _userService.GetUserWithPosts(userId);
 
             post.Comments!.Add(new PostComment
             {
                 Author = user,
                 Content = model.Content,
-                Post = post,
                 PublishDate = DateTime.UtcNow
             });
 

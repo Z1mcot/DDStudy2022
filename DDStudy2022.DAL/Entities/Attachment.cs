@@ -8,7 +8,7 @@ namespace DDStudy2022.DAL.Entities
 {
     public class Attachment
     {
-        public long Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; } = null!;
         public string MimeType { get; set; } = null!;
         public string FilePath { get; set; } = null!;

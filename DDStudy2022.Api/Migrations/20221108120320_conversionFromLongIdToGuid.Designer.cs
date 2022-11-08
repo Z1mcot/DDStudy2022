@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20221106182137_addPosts")]
-    partial class addPosts
+    [Migration("20221108120320_conversionFromLongIdToGuid")]
+    partial class conversionFromLongIdToGuid
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,11 +27,9 @@ namespace DDStudy2022.Api.Migrations
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Attachment", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
@@ -62,30 +60,39 @@ namespace DDStudy2022.Api.Migrations
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("uuid");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsModified")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsShown")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime>("PublishDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AuthorId");
+
                     b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.PostComment", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
@@ -94,8 +101,11 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("PostId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PublishDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -103,7 +113,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("PostComment", (string)null);
+                    b.ToTable("PostComments");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
@@ -112,8 +122,8 @@ namespace DDStudy2022.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<long?>("AvatarId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("AvatarId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("BirthDate")
                         .HasColumnType("timestamp with time zone");
@@ -123,6 +133,11 @@ namespace DDStudy2022.Api.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsPrivate")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -179,22 +194,33 @@ namespace DDStudy2022.Api.Migrations
                     b.ToTable("Avatars", (string)null);
                 });
 
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostImage", b =>
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostAttachment", b =>
                 {
                     b.HasBaseType("DDStudy2022.DAL.Entities.Attachment");
 
-                    b.Property<long>("PostId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("PostImage", (string)null);
+                    b.ToTable("PostAttachment", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Attachment", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
                         .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
+                {
+                    b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
+                        .WithMany("Posts")
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -210,15 +236,11 @@ namespace DDStudy2022.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DDStudy2022.DAL.Entities.Post", "Post")
+                    b.HasOne("DDStudy2022.DAL.Entities.Post", null)
                         .WithMany("Comments")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PostId");
 
                     b.Navigation("Author");
-
-                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
@@ -250,11 +272,11 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostImage", b =>
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostAttachment", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.Attachment", null)
                         .WithOne()
-                        .HasForeignKey("DDStudy2022.DAL.Entities.PostImage", "Id")
+                        .HasForeignKey("DDStudy2022.DAL.Entities.PostAttachment", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -276,6 +298,8 @@ namespace DDStudy2022.Api.Migrations
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
                 {
+                    b.Navigation("Posts");
+
                     b.Navigation("Sessions");
                 });
 

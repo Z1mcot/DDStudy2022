@@ -62,11 +62,19 @@ namespace DDStudy2022.Api.Services
             return userEntity;
         }
 
-        public async Task<UserModel> GetUser(Guid userId)
+        public async Task<UserModel> GetUserModel(Guid userId)
         {
             var user = await GetUserById(userId);
 
             return _mapper.Map<UserModel>(user);
+        }
+
+        public async Task<DAL.Entities.User> GetUserWithPosts(Guid userId)
+        {
+            var user = await _context.Users.Include(u => u.Posts).FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception("user not found");
+            return user;
         }
 
         public async Task ChangeUserPassword(Guid userId, string OldPassword, string newPassword)

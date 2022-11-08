@@ -9,7 +9,7 @@ namespace DDStudy2022.Common
 {
     public static class LinkHelper
     {
-        public static string GetLinkOfAttachment(long id)
+        public static string GetLinkOfAttachment(Guid id)
             => $"api/Attachment/ShowAttachment?attachmentId={id}";
     }
 }

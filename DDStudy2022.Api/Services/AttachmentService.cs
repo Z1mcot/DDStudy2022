@@ -67,7 +67,15 @@ namespace DDStudy2022.Api.Services
             return tempFile;
         }
 
-        
+        public async Task<Attachment> GetAttachmentById(Guid attachmentId)
+        {
+            var attachment = await _context.Attachments.FirstOrDefaultAsync(p => p.Id == attachmentId);
+            if (attachment == null)
+                throw new Exception("attachment not found");
+
+            return attachment;
+        }
+
 
         /*public async Task AddAvatarToUser(Guid userId, MetadataModel meta, string filePath)
         {

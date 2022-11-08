@@ -8,8 +8,8 @@ namespace DDStudy2022.DAL.Entities
 {
     public class Post
     {
-        public long Id { get; set; }
-        public virtual User User { get; set; } = null!;
+        public Guid Id { get; set; }
+        public virtual User Author { get; set; } = null!;
         public virtual IList<PostAttachment> Content { get; set; } = null!;
         public string? Description { get; set; }
         public DateTime PublishDate { get; set; }

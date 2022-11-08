@@ -39,7 +39,7 @@ namespace DDStudy2022.Api.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task DeletePost(long postId)
+        public async Task DeletePost(Guid postId)
         {
             var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             var authorId = await _postService.GetPostAuthorId(postId);
@@ -56,7 +56,7 @@ namespace DDStudy2022.Api.Controllers
         // Нужно придумать, как получить весь content поста и вывести его в модель
         [HttpPost]
         [Authorize]
-        private async Task ModifyPost(long postId, ModifyPostModel model)
+        private async Task ModifyPost(Guid postId, ModifyPostModel model)
         {
             var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
             var authorId = await _postService.GetPostAuthorId(postId);
@@ -72,17 +72,17 @@ namespace DDStudy2022.Api.Controllers
 
         [HttpGet]
         public async Task<List<PostModel>> ShowUserPosts(Guid userId)
-            => await _postService.GetUserPostModels(userId);
+            => await _postService.GetPostModels(userId);
 
         [HttpGet]
-        public async Task<PostModel> ShowPost(long postId) 
+        public async Task<PostModel> ShowPost(Guid postId) 
             => await _postService.GetPostModel(postId);
 
 
         [HttpGet]
-        public async Task<FileResult> ShowAttachment(long attachmentId)
+        public async Task<FileResult> ShowAttachment(Guid attachmentId)
         {
-            var attachment = await _postService.GetAttachmentById(attachmentId);
+            var attachment = await _attachmentService.GetAttachmentById(attachmentId);
 
             return File(System.IO.File.ReadAllBytes(attachment.FilePath), attachment.MimeType);
         }
@@ -101,7 +101,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<List<CommentModel>> ShowComments(long postId)
+        public async Task<List<CommentModel>> ShowComments(Guid postId)
         {
             return await _postService.GetPostComments(postId);
         }

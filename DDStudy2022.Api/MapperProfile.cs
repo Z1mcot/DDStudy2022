@@ -20,7 +20,7 @@ namespace DDStudy2022.Api
             CreateMap<DAL.Entities.UserSession, SessionModel>();
             CreateMap<DAL.Entities.Avatar, AttachmentModel>();
             CreateMap<DAL.Entities.PostAttachment, PostAttachmentModel>()
-                .ForMember(d => d.Link, m => m.MapFrom(s => LinkHelper.GetLinkOfAttachment(s.Id)));
+                .ForMember(d => d.Url, m => m.MapFrom(s => LinkHelper.GetLinkOfAttachment(s.Id)));
             CreateMap<DAL.Entities.Post, PostModel>();
             CreateMap<DAL.Entities.PostComment, CommentModel>()
                 .ForMember(d => d.Author, m => m.MapFrom(s => s.Author.Name));
