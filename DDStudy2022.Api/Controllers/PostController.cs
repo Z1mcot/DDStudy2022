@@ -36,7 +36,6 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
         {
             var attach = await _postService.GetPostContent(postContentId);
@@ -113,12 +112,10 @@ namespace DDStudy2022.Api.Controllers
         */
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<List<PostModel>> ShowUserPosts(Guid userId, int skip = 0, int take = 10)
             => await _postService.GetUserPosts(userId, skip, take);
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<PostModel> ShowPost(Guid postId)
             => await _postService.GetPostById(postId);
 
@@ -144,7 +141,6 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<List<CommentModel>> ShowComments(Guid postId, int skip = 0, int take = 10)
         {
             return await _postService.GetPostComments(postId, skip, take);

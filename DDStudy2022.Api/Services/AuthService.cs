@@ -14,13 +14,11 @@ namespace DDStudy2022.Api.Services
 {
     public class AuthService
     {
-        private readonly IMapper _mapper;
         private readonly DataContext _context;
         private readonly AuthConfig _config;
 
-        public AuthService(IMapper mapper, DataContext context, IOptions<AuthConfig> authConfig)
+        public AuthService(DataContext context, IOptions<AuthConfig> authConfig)
         {
-            _mapper = mapper;
             _context = context;
             _config = authConfig.Value;
         }
@@ -140,7 +138,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
         {
-            var sessions = await _context.UserSessions.Where(s => s.UserId == userId).ToListAsync();
+            var sessions = await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
             if (sessions == null)
                 throw new Exception("No active sessions for this user");
 

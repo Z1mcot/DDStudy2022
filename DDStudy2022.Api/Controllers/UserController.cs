@@ -109,7 +109,6 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
         {
             var attachment = await _userService.GetUserAvatar(userId);

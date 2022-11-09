@@ -44,8 +44,6 @@ namespace DDStudy2022.Api
             // Вот здесь надо понормальному смапить User в UserAvatarModel, чтобы не выдавало ошибку
             /*CreateMap<DAL.Entities.PostComment, CommentModel>()
                 .ForMember(dest => dest.PublishDate, map => map.MapFrom(src => DateTime.UtcNow));*/
-
-            CreateMap<AddCommentModel, DAL.Entities.PostComment>();
         }
     }
 }

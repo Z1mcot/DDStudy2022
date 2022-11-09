@@ -6,6 +6,7 @@ namespace DDStudy2022.Api.Models.Comments
     {
         [Required]
         public Guid PostId { get; set; }
+        [Required]
         public string Content { get; set; } = null!;
     }
 }
