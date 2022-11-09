@@ -1,5 +1,4 @@
 ﻿using DDStudy2022.Api.Models.Posts;
-using DDStudy2022.Api.Models;
 using DDStudy2022.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -52,7 +51,7 @@ namespace DDStudy2022.Api.Controllers
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new Exception("not authorize");
+                throw new Exception("not authorized");
 
             var model = new CreatePostModel
             {
@@ -93,23 +92,43 @@ namespace DDStudy2022.Api.Controllers
                 await _postService.UnlistPost(postId);
         }
 
-        /*
+        // Пока он только добавляет новые картинки к посту
         [HttpPost]
-        [Authorize]
-        private async Task ModifyPost(Guid postId, ModifyPostModel model)
+        public async Task ModifyPost(Guid postId, ModifyPostRequest request)
         {
-            var userIdString = User.Claims.FirstOrDefault(p => p.Type == "id")?.Value;
-            var authorId = await _postService.GetPostAuthorId(postId);
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            var authorId = (await _postService.GetPostById(postId)).Author.Id;
 
-            if (Guid.TryParse(userIdString, out var userId)
-                && authorId == userId)
+            if (userId == default || userId != authorId)
+                throw new Exception("not authorized");
+
+            var model = new ModifyPostModel
             {
-                await _postService.ModifyPost(postId, model);
-            }
-            else
-                throw new Exception("only author can modify his posts");
+                Description = request.Description,
+                Content = request.Content.Select(x =>
+                new MetadataWithPathModel(x, q => Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "Attachments",
+                    q.TempId.ToString()), userId)).ToList()
+            };
+
+            model.Content.ForEach(x =>
+            {
+                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), x.TempId.ToString()));
+                if (tempFi.Exists)
+                {
+                    var destFi = new FileInfo(x.FilePath);
+                    if (destFi.Directory != null && !destFi.Directory.Exists)
+                        destFi.Directory.Create();
+
+                    System.IO.File.Copy(tempFi.FullName, x.FilePath, true);
+                    tempFi.Delete();
+                }
+            });
+
+            await _postService.ModifyPost(postId, model);
         }
-        */
+
 
         [HttpGet]
         public async Task<List<PostModel>> ShowUserPosts(Guid userId, int skip = 0, int take = 10)

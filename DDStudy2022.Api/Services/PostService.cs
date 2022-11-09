@@ -119,18 +119,20 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        /*
+
         public async Task ModifyPost(Guid postId, ModifyPostModel model)
         {
-            var post = await GetPostById(postId);
+            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            if (post == null)
+                throw new Exception("post not found");
 
             post.Description = model.Description;
             post.IsModified = true;
-            // post.Content = model.Content;
+            post.Content = _mapper.Map<List<PostAttachment>>(model.Content);
 
             await _context.SaveChangesAsync();
         }
-        */
+
 
         public async Task<List<CommentModel>> GetPostComments(Guid postId, int skip, int take)
         {

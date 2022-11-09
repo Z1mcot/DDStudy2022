@@ -1,11 +1,11 @@
 ﻿using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.DAL.Entities;
 
-namespace DDStudy2022.Api.Models
+namespace DDStudy2022.Api.Models.Posts
 {
-    public class ModifyPostModel
+    public class ModifyPostRequest
     {
         public string? Description { get; set; }
-        public List<AttachmentModel> Content { get; set; } = null!;
+        public List<MetadataModel> Content { get; set; } = null!;
     }
 }
