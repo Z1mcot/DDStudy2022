@@ -7,7 +7,7 @@ namespace DDStudy2022.Api.Models.Comments
         // Пока что у нас два одинаковых класса, это будет продолжаться до тех пор
         // пока я не смогу нормально пристроить сюда UserAvatarModel
         // Всё так и задуманно
-        public Guid AuthorId { get; set; }
+        public UserAvatarModel Author { get; set; } = null!;
         public string Content { get; set; } = null!;
         public DateTime PublishDate { get; set; }
     }

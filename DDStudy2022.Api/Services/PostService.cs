@@ -8,7 +8,9 @@ using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Users;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -19,9 +21,9 @@ namespace DDStudy2022.Api.Services
         private readonly IMapper _mapper;
         private readonly DataContext _context;
 
-        private Func<AttachmentModel, string?>? _linkContentGenerator;
-        private Func<UserModel, string?>? _linkAvatarGenerator;
-        public void SetLinkGenerator(Func<AttachmentModel, string?> linkContentGenerator, Func<UserModel, string?> linkAvatarGenerator)
+        private Func<PostAttachment, string?>? _linkContentGenerator;
+        private Func<User, string?>? _linkAvatarGenerator;
+        public void SetLinkGenerator(Func<PostAttachment, string?> linkContentGenerator, Func<User, string?> linkAvatarGenerator)
         {
             _linkAvatarGenerator = linkAvatarGenerator;
             _linkContentGenerator = linkContentGenerator;
@@ -35,11 +37,69 @@ namespace DDStudy2022.Api.Services
 
 
 
-        public async Task CreatePost(CreatePostModel model)
+        public async Task CreatePost(CreatePostRequest request)
         {
+            var model = _mapper.Map<CreatePostModel>(request);
+
+            model.Content.ForEach(x =>
+            {
+                x.AuthorId = model.AuthorId;
+                x.FilePath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "Attachments",
+                    x.TempId.ToString());
+           
+                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), x.TempId.ToString()));
+                if (tempFi.Exists)
+                {
+                    var destFi = new FileInfo(x.FilePath);
+                    if (destFi.Directory != null && !destFi.Directory.Exists)
+                        destFi.Directory.Create();
+
+                    File.Move(tempFi.FullName, x.FilePath, true);
+                }
+            });
+
             var dbModel = _mapper.Map<Post>(model);
 
             await _context.Posts.AddAsync(dbModel);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ModifyPost(Guid postId, ModifyPostRequest request)
+        {
+            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            if (post == null)
+                throw new Exception("post not found");
+            if (post.AuthorId != request.AuthorId)
+                throw new Exception("You are not authorized for this action");
+
+
+            var model = _mapper.Map<ModifyPostModel>(request);
+
+            model.Content.ForEach(x =>
+            {
+                x.AuthorId = model.AuthorId;
+                x.FilePath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "Attachments",
+                    x.TempId.ToString());
+
+                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), x.TempId.ToString()));
+                if (tempFi.Exists)
+                {
+                    var destFi = new FileInfo(x.FilePath);
+                    if (destFi.Directory != null && !destFi.Directory.Exists)
+                        destFi.Directory.Create();
+
+                    File.Move(tempFi.FullName, x.FilePath, true);
+                }
+            });
+
+            post.Description = model.Description;
+            post.IsModified = true;
+            post.Content = _mapper.Map<List<PostAttachment>>(model.Content);
+
             await _context.SaveChangesAsync();
         }
 
@@ -52,11 +112,11 @@ namespace DDStudy2022.Api.Services
             var res = posts.Select(post =>
                 new PostModel
                 {
-                    Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                    Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
                     Description = post.Description,
                     Id = post.Id,
-                    Content = post.Content.Select(x => 
-                        new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+                    Content = post.Content.Select(x =>
+                        _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
                 }).ToList();
 
             return res;
@@ -79,11 +139,11 @@ namespace DDStudy2022.Api.Services
 
             var res = new PostModel
             {
-                Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
                 Description = post.Description,
                 Id = post.Id,
                 Content = post.Content.Select(x =>
-                    new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+                    _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
             };
 
             return res;
@@ -98,11 +158,11 @@ namespace DDStudy2022.Api.Services
             var res = posts.Select(post =>
                 new PostModel
                 {
-                    Author = new UserAvatarModel(_mapper.Map<UserModel>(post.Author), post.Author.Avatar == null ? null : _linkAvatarGenerator),
+                    Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
                     Description = post.Description,
                     Id = post.Id,
                     Content = post.Content.Select(x =>
-                        new AttachmentWithLinkModel(_mapper.Map<AttachmentModel>(x), _linkContentGenerator)).ToList()
+                        _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
                 }).ToList();
 
             return res;
@@ -115,36 +175,25 @@ namespace DDStudy2022.Api.Services
                 throw new Exception("post not found");
 
             post.IsShown = false;
-            
-            await _context.SaveChangesAsync();
-        }
-
-
-        public async Task ModifyPost(Guid postId, ModifyPostModel model)
-        {
-            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
-            if (post == null)
-                throw new Exception("post not found");
-
-            post.Description = model.Description;
-            post.IsModified = true;
-            post.Content = _mapper.Map<List<PostAttachment>>(model.Content);
 
             await _context.SaveChangesAsync();
         }
+
+
+
 
 
         public async Task<List<CommentModel>> GetPostComments(Guid postId, int skip, int take)
         {
-            var comments = await _context.PostComments
-                .Include(c => c.Author).ThenInclude(x => x.Avatar)
-                .AsNoTracking().Take(take).Skip(skip).ToListAsync();
+            var comments = await _context.PostComments.
+                Include(c => c.Author).ThenInclude(u => u.Avatar)
+                .AsNoTracking().Where(p => p.Id == postId).ToListAsync();
+
 
             var res = comments.Select(comment =>
                 new CommentModel
                 {
-                    // Всё так и задуманно, потом я переделаю автора с Guid на UserAvatarModel, пока что я не могу побороть автомаппер
-                    AuthorId = comment.AuthorId,
+                    Author = _mapper.Map<User, UserAvatarModel>(comment.Author, opt => opt.AfterMap(FixAvatar)),
                     Content = comment.Content,
                     PublishDate = comment.PublishDate.UtcDateTime
                 }).ToList();
@@ -158,6 +207,15 @@ namespace DDStudy2022.Api.Services
 
             await _context.PostComments.AddAsync(dbModel);
             await _context.SaveChangesAsync();
+        }
+
+        private void FixAvatar(User src, UserAvatarModel dest)
+        {
+            dest.AvatarLink = src.Avatar == null ? null : _linkAvatarGenerator?.Invoke(src);
+        }
+        private void FixContent(PostAttachment src, AttachmentExternalModel dest)
+        {
+            dest.ContentLink = _linkContentGenerator?.Invoke(src);
         }
     }
 }

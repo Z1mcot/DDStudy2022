@@ -38,7 +38,7 @@ namespace DDStudy2022.Api.Services
             if (!fileInfo.Directory.Exists)
                 fileInfo.Directory?.Create();
 
-            using (var stream = System.IO.File.Create(newPath))
+            using (var stream = File.Create(newPath))
             {
                 await file.CopyToAsync(stream);
             }
@@ -57,16 +57,6 @@ namespace DDStudy2022.Api.Services
         }
 
 
-        /*public async Task AddAvatarToUser(Guid userId, MetadataModel meta, string filePath)
-        {
-            var user = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
-            if (user != null)
-            {
-                var avatar = new Avatar { Author = user, MimeType = meta.MimeType, FilePath = filePath, Name = meta.Name, Size = meta.Size };
-                user.Avatar = avatar;
 
-                await _context.SaveChangesAsync();
-            }
-        }*/
     }
 }

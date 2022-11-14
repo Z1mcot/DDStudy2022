@@ -13,6 +13,7 @@ namespace DDStudy2022.DAL.Entities
         public Guid AuthorId { get; set; }
         public virtual User Author { get; set; } = null!;
         public string Content { get; set; } = null!;
+        public Guid PostId { get; set; }
         public DateTimeOffset PublishDate { get; set; }
     }
 }

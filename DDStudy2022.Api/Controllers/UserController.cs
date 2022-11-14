@@ -28,7 +28,8 @@ namespace DDStudy2022.Api.Controllers
             _userService = userService;
             if (_userService != null)
                 _userService.SetLinkGenerator(x =>
-                    Url.Action(nameof(GetUserAvatar), new { userId = x.Id, download = false }));
+                    Url.ControllerAction<AttachmentController>(name: nameof(AttachmentController.GetUserAvatar),
+                                                               arg: new { userId = x.Id }));
             
             _authService = authService;
         }
@@ -81,55 +82,11 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task DeactivateSession(SessionDeactivationRequest request) => await _authService.DeactivateSession(request.RefreshToken);
+        public async Task DeactivateSession(SessionDeactivationRequest request) 
+            => await _authService.DeactivateSession(request.RefreshToken);
 
-        [HttpPost]
-        public async Task AddAvatarToUser(MetadataModel model)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId != default)
-            {
-                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
-                if (!tempFi.Exists)
-                    throw new Exception("file not found");
-                else
-                {
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "Attachments", model.TempId.ToString());
-                    var destFi = new FileInfo(path);
-                    if (destFi.Directory != null && !destFi.Directory.Exists)
-                        destFi.Directory.Create();
+        
 
-                    System.IO.File.Copy(tempFi.FullName, path, true);
 
-                    await _userService.AddAvatarToUser(userId, model, path);
-                }
-            }
-            else
-                throw new Exception("Seems like you don\'t exist");
-        }
-
-        [HttpGet]
-        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
-        {
-            var attachment = await _userService.GetUserAvatar(userId);
-
-            var fs = new FileStream(attachment.FilePath, FileMode.Open);
-            if (download)
-                return File(fs, attachment.MimeType, attachment.Name);
-            else
-                return File(fs, attachment.MimeType);
-        }
-
-        [HttpGet]
-        public async Task<FileStreamResult> GetCurrentUserAvatar(bool download = false)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId != default)
-            {
-                return await GetUserAvatar(userId, download);
-            }
-            else
-                throw new Exception("you are not authorized");
-        }
     }
 }

@@ -8,6 +8,7 @@ using DDStudy2022.Common.Consts;
 using DDStudy2022.Common.Extensions;
 using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.DAL.Entities;
+using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 
 namespace DDStudy2022.Api.Controllers
 {
@@ -20,65 +21,33 @@ namespace DDStudy2022.Api.Controllers
         public PostController(PostService postService)
         {
             _postService = postService;
+
             _postService.SetLinkGenerator(
                 linkAvatarGenerator: x =>
-                Url.Action(nameof(UserController.GetUserAvatar), "User", new
-                {
-                    userId = x.Id,
-                    download = false
-                }),
-                linkContentGenerator: x => Url.Action(nameof(GetPostContent), new
-                {
-                    postContentId = x.Id,
-                    download = false
-                }));
+                Url.ControllerAction<AttachmentController>(
+                    nameof(AttachmentController.GetUserAvatar),
+                    arg: new { userId = x.Id }),
+                linkContentGenerator: x => 
+                Url.ControllerAction<AttachmentController>(
+                    nameof(AttachmentController.GetPostContent), 
+                    arg: new { postContentId = x.Id }));
         }
 
-        [HttpGet]
-        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
-        {
-            var attach = await _postService.GetPostContent(postContentId);
-            var fs = new FileStream(attach.FilePath, FileMode.Open);
-            if (download)
-                return File(fs, attach.MimeType, attach.Name);
-            else
-                return File(fs, attach.MimeType);
-
-        }
+        
 
         [HttpPost]
         public async Task CreatePost(CreatePostRequest request)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new Exception("not authorized");
-
-            var model = new CreatePostModel
+            if (!request.AuthorId.HasValue)
             {
-                AuthorId = userId,
-                Description = request.Description,
-                Content = request.Content.Select(x =>
-                new MetadataWithPathModel(x, q => Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "Attachments",
-                    q.TempId.ToString()), userId)).ToList()
-            };
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new Exception("not authorized");
 
-            model.Content.ForEach(x =>
-            {
-                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), x.TempId.ToString()));
-                if (tempFi.Exists)
-                {
-                    var destFi = new FileInfo(x.FilePath);
-                    if (destFi.Directory != null && !destFi.Directory.Exists)
-                        destFi.Directory.Create();
+                request.AuthorId = userId;
+            } 
 
-                    System.IO.File.Copy(tempFi.FullName, x.FilePath, true);
-                    tempFi.Delete();
-                }
-            });
-
-            await _postService.CreatePost(model);
+            await _postService.CreatePost(request);
         }
 
         [HttpPost]
@@ -96,37 +65,16 @@ namespace DDStudy2022.Api.Controllers
         [HttpPost]
         public async Task ModifyPost(Guid postId, ModifyPostRequest request)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            var authorId = (await _postService.GetPostById(postId)).Author.Id;
-
-            if (userId == default || userId != authorId)
-                throw new Exception("not authorized");
-
-            var model = new ModifyPostModel
+            if (!request.AuthorId.HasValue)
             {
-                Description = request.Description,
-                Content = request.Content.Select(x =>
-                new MetadataWithPathModel(x, q => Path.Combine(
-                    Directory.GetCurrentDirectory(),
-                    "Attachments",
-                    q.TempId.ToString()), userId)).ToList()
-            };
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new Exception("not authorized");
 
-            model.Content.ForEach(x =>
-            {
-                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), x.TempId.ToString()));
-                if (tempFi.Exists)
-                {
-                    var destFi = new FileInfo(x.FilePath);
-                    if (destFi.Directory != null && !destFi.Directory.Exists)
-                        destFi.Directory.Create();
+                request.AuthorId = userId;
+            }
 
-                    System.IO.File.Copy(tempFi.FullName, x.FilePath, true);
-                    tempFi.Delete();
-                }
-            });
-
-            await _postService.ModifyPost(postId, model);
+            await _postService.ModifyPost(postId, request);
         }
 
 
@@ -151,11 +99,12 @@ namespace DDStudy2022.Api.Controllers
 
             var model = new AddCommentModel
             {
+                PostId = request.PostId,
                 AuthorId = userId,
                 Content = request.Content
             };
 
-            await _postService.AddComment( model);
+            await _postService.AddComment(model);
             
         }
 

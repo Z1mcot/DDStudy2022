@@ -2,6 +2,7 @@
 using DDStudy2022.Api.Configs;
 using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Common;
+using DDStudy2022.Common.Consts;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -58,8 +59,8 @@ namespace DDStudy2022.Api.Services
                     claims: new Claim[]
                     {
                         new Claim(ClaimsIdentity.DefaultNameClaimType, session.User.Name),
-                        new Claim("sessionId", session.Id.ToString()),
-                        new Claim("id", session.User.Id.ToString()),
+                        new Claim(ClaimNames.SessionId, session.Id.ToString()),
+                        new Claim(ClaimNames.Id, session.User.Id.ToString()),
                     },
                     expires: DateTime.Now.AddMinutes(_config.Lifetime),
                     signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
@@ -70,7 +71,7 @@ namespace DDStudy2022.Api.Services
                     notBefore: dtNow,
                     claims: new Claim[]
                     {
-                        new Claim("refreshToken", session.RefreshToken.ToString()),
+                        new Claim(ClaimNames.RefreshToken, session.RefreshToken.ToString()),
                     },
                     expires: DateTime.Now.AddHours(_config.Lifetime),
                     signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)

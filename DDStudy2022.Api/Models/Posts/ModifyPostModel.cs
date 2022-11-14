@@ -4,7 +4,8 @@ namespace DDStudy2022.Api.Models.Posts
 {
     public class ModifyPostModel
     {
+        public Guid AuthorId { get; set; }
         public string? Description { get; set; }
-        public List<MetadataWithPathModel> Content { get; set; } = null!;
+        public List<MetadataLinkModel> Content { get; set; } = null!;
     }
 }

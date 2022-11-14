@@ -21,8 +21,8 @@ namespace DDStudy2022.Api.Services
         private readonly IMapper _mapper;
         private readonly DataContext _context;
         private readonly AuthService _authService;
-        private Func<UserModel, string?>? _linkGenerator;
-        public void SetLinkGenerator(Func<UserModel, string?> linkGenerator)
+        private Func<User, string?>? _linkGenerator;
+        public void SetLinkGenerator(Func<User, string?> linkGenerator)
         {
             _linkGenerator = linkGenerator;
         }
@@ -42,11 +42,7 @@ namespace DDStudy2022.Api.Services
             return t.Entity.Id;
         }
 
-        public async Task<IEnumerable<UserAvatarModel>> GetUsers()
-        {
-            var users = await _context.Users.AsNoTracking().ProjectTo<UserModel>(_mapper.ConfigurationProvider).ToListAsync();
-            return users.Select(x => new UserAvatarModel(x, _linkGenerator));
-        }
+
 
         private async Task<User> GetUserById(Guid userId)
         {
@@ -57,20 +53,7 @@ namespace DDStudy2022.Api.Services
             return userEntity;
         }
 
-        public async Task<UserAvatarModel> GetUserModel(Guid userId)
-        {
-            var user = await GetUserById(userId);
-
-            return new UserAvatarModel(_mapper.Map<UserModel>(user), user.Avatar == null ? null : _linkGenerator);
-        }
-
-        /*public async Task<DAL.Entities.User> GetUserWithPosts(Guid userId)
-        {
-            var user = await _context.Users.Include(u => u.Posts).FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new Exception("user not found");
-            return user;
-        }*/
+        
 
         public async Task ChangeUserPassword(Guid userId, string OldPassword, string newPassword)
         {
@@ -126,7 +109,21 @@ namespace DDStudy2022.Api.Services
 
         public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
             => _mapper.Map<List<SessionModel>>(await _authService.GetUserSessions(userId));
-        
 
+        public async Task<IEnumerable<UserAvatarModel>> GetUsers() 
+            => (await _context.Users.AsNoTracking().Include(x => x.Avatar).ToListAsync())
+                .Select(x => _mapper.Map<User, UserAvatarModel>(x, opt => opt.AfterMap(FixAvatar)));
+
+        public async Task<UserAvatarModel> GetUserModel(Guid userId)
+        {
+            var user = await GetUserById(userId);
+
+            return _mapper.Map<User, UserAvatarModel>(user, opt => opt.AfterMap(FixAvatar));
+        }
+
+        private void FixAvatar(User src, UserAvatarModel dest)
+        {
+            dest.AvatarLink = src.Avatar == null ? null : _linkGenerator?.Invoke(src);
+        }
     }
 }

@@ -9,5 +9,6 @@ namespace DDStudy2022.Api.Models.Posts
         [Required]
         public List<MetadataModel> Content { get; set; } = null!;
         public string? Description { get; set; }
+        public Guid? AuthorId { get; set; }
     }
 }
