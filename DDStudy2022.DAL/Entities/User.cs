@@ -14,7 +14,10 @@ namespace DDStudy2022.DAL.Entities
         public string PasswordHash { get; set; } = "not entered";
         public DateTimeOffset BirthDate { get; set; }
         public Avatar? Avatar { get; set; } 
-
+        public virtual ICollection<UserSession>? UserSessions { get; set; }
+        public virtual ICollection<Post>? Posts { get; set; }
+        public virtual ICollection<UserSubscription>? Subscriptions { get; set; } = new List<UserSubscription>();
+        public virtual ICollection<UserSubscription>? Subscribers { get; set; } = new List<UserSubscription>();
         public bool IsActive { get; set; }
         public bool IsPrivate { get; set; }
     }

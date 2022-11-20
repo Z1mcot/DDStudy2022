@@ -1,8 +1,8 @@
-﻿using AutoMapper;
-using DDStudy2022.Api.Configs;
+﻿using DDStudy2022.Api.Configs;
 using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Common;
 using DDStudy2022.Common.Consts;
+using DDStudy2022.Common.Exceptions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +24,11 @@ namespace DDStudy2022.Api.Services
             _config = authConfig.Value;
         }
 
-        private async Task<DAL.Entities.User> GetUserByCredentials(string login, string password)
+        private async Task<User> GetUserByCredentials(string login, string password)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Email.ToLower() == login.ToLower());
             if (user == null)
-                throw new Exception("User is not present in database");
+                throw new UserNotFoundException();
 
             if (!HashHelper.Verify(password, user.PasswordHash))
                 throw new Exception("Wrong password");
@@ -36,20 +36,12 @@ namespace DDStudy2022.Api.Services
             return user;
         }
 
-        public async Task<UserSession> GetSessionByRefreshToken(Guid id)
-        {
-            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);
-            if (session == null)
-                throw new Exception("session not found");
-            return session;
-        }
-
-        public TokenModel GenerateTokens(DAL.Entities.UserSession session)
+        public TokenModel GenerateTokens(UserSession session)
         {
             var dtNow = DateTime.Now;
             if (session.User == null)
-                throw new Exception("somehow we managed to create session without user");
-            if (!session.User.IsActive)
+                throw new SessionNotFoundException();
+            if (!session.User.IsActive) // Ну а вдруг
                 throw new Exception("your account has been suspended");
 
             var accessJwt = new JwtSecurityToken(
@@ -84,7 +76,7 @@ namespace DDStudy2022.Api.Services
         public async Task<TokenModel> GetToken(string login, string password)
         {
             var user = await GetUserByCredentials(login, password);
-            var session = await _context.UserSessions.AddAsync(new DAL.Entities.UserSession
+            var session = await _context.UserSessions.AddAsync(new UserSession
             {
                 Id = Guid.NewGuid(),
                 User = user,
@@ -137,29 +129,20 @@ namespace DDStudy2022.Api.Services
             }
         }
 
-        public async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
-        {
-            var sessions = await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
-            if (sessions == null)
-                throw new Exception("No active sessions for this user");
-
-            return sessions;
-        }
-
         public async Task<UserSession> GetSessionById(Guid id)
         {
             var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == id);
             if (session == null)
-                throw new Exception("session not found");
+                throw new SessionNotFoundException();
             return session;
         }
 
-        public async Task DeactivateSession(Guid refreshToken)
+        private async Task<UserSession> GetSessionByRefreshToken(Guid id)
         {
-            var session = await GetSessionByRefreshToken(refreshToken);
-            session.IsActive = false;
-
-            await _context.SaveChangesAsync();
+            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);
+            if (session == null)
+                throw new SessionNotFoundException();
+            return session;
         }
     }
 }

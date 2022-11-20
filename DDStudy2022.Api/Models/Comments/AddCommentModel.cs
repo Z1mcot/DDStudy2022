@@ -5,9 +5,10 @@ namespace DDStudy2022.Api.Models.Comments
 {
     public class AddCommentModel
     {
-        public Guid Id { get; set; }
-        public Guid AuthorId { get; set; }
+        public Guid? AuthorId { get; set; }
+        [Required]
         public Guid PostId { get; set; }
+        [Required]
         public string Content { get; set; } = null!;
 
     }

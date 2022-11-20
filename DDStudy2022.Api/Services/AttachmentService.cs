@@ -10,11 +10,7 @@ namespace DDStudy2022.Api.Services
 {
     public class AttachmentService
     {
-
-        public AttachmentService()
-        {
-            
-        }
+        public AttachmentService() { }
 
         public async Task<MetadataModel> UploadFile(IFormFile file)
         {
@@ -55,8 +51,5 @@ namespace DDStudy2022.Api.Services
             }
             return res;
         }
-
-
-
     }
 }

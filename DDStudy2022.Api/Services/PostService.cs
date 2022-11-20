@@ -1,18 +1,11 @@
 ﻿using AutoMapper;
-using DDStudy2022.Api.Configs;
-using DDStudy2022.Api.Models;
 using DDStudy2022.Api.Models.Attachments;
-using DDStudy2022.Api.Models.Comments;
 using DDStudy2022.Api.Models.Posts;
-using DDStudy2022.Api.Models.Sessions;
-using DDStudy2022.Api.Models.Users;
+using DDStudy2022.Common.Exceptions;
+using DDStudy2022.Common.Extensions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Runtime.CompilerServices;
 
 namespace DDStudy2022.Api.Services
 {
@@ -21,21 +14,11 @@ namespace DDStudy2022.Api.Services
         private readonly IMapper _mapper;
         private readonly DataContext _context;
 
-        private Func<PostAttachment, string?>? _linkContentGenerator;
-        private Func<User, string?>? _linkAvatarGenerator;
-        public void SetLinkGenerator(Func<PostAttachment, string?> linkContentGenerator, Func<User, string?> linkAvatarGenerator)
-        {
-            _linkAvatarGenerator = linkAvatarGenerator;
-            _linkContentGenerator = linkContentGenerator;
-        }
-
         public PostService(IMapper mapper, DataContext context)
         {
             _mapper = mapper;
             _context = context;
         }
-
-
 
         public async Task CreatePost(CreatePostRequest request)
         {
@@ -70,9 +53,9 @@ namespace DDStudy2022.Api.Services
         {
             var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
             if (post.AuthorId != request.AuthorId)
-                throw new Exception("You are not authorized for this action");
+                throw new ModifyPostException();
 
 
             var model = _mapper.Map<ModifyPostModel>(request);
@@ -103,119 +86,95 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PostModel>> GetPosts(int skip, int take)
-        {
-            var posts = await _context.Posts
-                .Include(x => x.Author).ThenInclude(x => x.Avatar)
-                .Include(x => x.Content).AsNoTracking().Take(take).Skip(skip).ToListAsync();
-
-            var res = posts.Select(post =>
-                new PostModel
-                {
-                    Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
-                    Description = post.Description,
-                    Id = post.Id,
-                    Content = post.Content.Select(x =>
-                        _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
-                }).ToList();
-
-            return res;
-        }
-
-        public async Task<AttachmentModel> GetPostContent(Guid postContentId)
-        {
-            var res = await _context.PostContent.FirstOrDefaultAsync(x => x.Id == postContentId);
-
-            return _mapper.Map<AttachmentModel>(res);
-        }
-
-        public async Task<PostModel> GetPostById(Guid postId)
-        {
-            var post = await _context.Posts
-                .Include(x => x.Author).ThenInclude(x => x.Avatar)
-                .Include(x => x.Content).AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId);
-            if (post == null)
-                throw new Exception("post not found");
-
-            var res = new PostModel
-            {
-                Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
-                Description = post.Description,
-                Id = post.Id,
-                Content = post.Content.Select(x =>
-                    _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
-            };
-
-            return res;
-        }
-
-        public async Task<List<PostModel>> GetUserPosts(Guid userId, int skip, int take)
-        {
-            var posts = await _context.Posts
-                .Include(x => x.Author).ThenInclude(x => x.Avatar)
-                .Include(x => x.Content).AsNoTracking().Where(p => p.AuthorId == userId).Take(take).Skip(skip).ToListAsync();
-
-            var res = posts.Select(post =>
-                new PostModel
-                {
-                    Author = _mapper.Map<User, UserAvatarModel>(post.Author, opt => opt.AfterMap(FixAvatar)),
-                    Description = post.Description,
-                    Id = post.Id,
-                    Content = post.Content.Select(x =>
-                        _mapper.Map<PostAttachment, AttachmentExternalModel>(x, opt => opt.AfterMap(FixContent))).ToList()
-                }).ToList();
-
-            return res;
-        }
-
-        public async Task UnlistPost(Guid postId)
+        public async Task UnlistPost(Guid userId, Guid postId)
         {
             var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
             if (post == null)
-                throw new Exception("post not found");
+                throw new PostNotFoundException();
+            if (post.AuthorId != userId)
+                throw new ModifyPostException();
 
             post.IsShown = false;
 
             await _context.SaveChangesAsync();
         }
 
-
-
-
-
-        public async Task<List<CommentModel>> GetPostComments(Guid postId, int skip, int take)
+        // К сожалению сюда IsAuthorizedToSeePosts не впихнуть. Ну плюс нет смысла выводит здесь свои же посты
+        public async Task<List<PostModel>> GetPosts(Guid userId, int skip, int take)
         {
-            var comments = await _context.PostComments.
-                Include(c => c.Author).ThenInclude(u => u.Avatar)
-                .AsNoTracking().Where(p => p.Id == postId).ToListAsync();
+            var posts = await _context.Posts
+                .IncludeAuthorWithAvatar()
+                .IncludeAuthorWithSubscribers()
+                .Include(x => x.Content)
+                .AsNoTracking()
+                .Where(p => p.Author.IsActive 
+                            && p.IsShown
+                            && (!p.Author.IsPrivate
+                                || p.Author.Subscribers!.Any(u => u.SubscriberId == userId && u.IsConfirmed))) 
+                .OrderByDescending(x => x.PublishDate).Skip(skip).Take(take)
+                .Select(x => _mapper.Map<PostModel>(x))
+                .ToListAsync();
 
-
-            var res = comments.Select(comment =>
-                new CommentModel
-                {
-                    Author = _mapper.Map<User, UserAvatarModel>(comment.Author, opt => opt.AfterMap(FixAvatar)),
-                    Content = comment.Content,
-                    PublishDate = comment.PublishDate.UtcDateTime
-                }).ToList();
-
-            return res;
+            return posts;
         }
 
-        public async Task AddComment(AddCommentModel model)
+        public async Task<AttachmentModel> GetPostContent(Guid userId, Guid postContentId)
         {
-            var dbModel = _mapper.Map<PostComment>(model);
+            var res = await _context.PostContent.FirstOrDefaultAsync(x => x.Id == postContentId);
+            if (res == null)
+                throw new AttachmentNotFoundException();
+            if (!await IsAuthorizedToSeePosts(userId, res.AuthorId))
+                throw new PrivateAccountNonsubException();
 
-            await _context.PostComments.AddAsync(dbModel);
-            await _context.SaveChangesAsync();
+
+            return _mapper.Map<AttachmentModel>(res);
         }
 
-        private void FixAvatar(User src, UserAvatarModel dest)
+        public async Task<PostModel> GetPostById(Guid userId, Guid postId)
         {
-            dest.AvatarLink = src.Avatar == null ? null : _linkAvatarGenerator?.Invoke(src);
+            var post = await _context.Posts
+                .IncludeAuthorWithAvatar()
+                .Include(x => x.Content)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null || !post.IsShown)
+                throw new PostNotFoundException();
+            if (!await IsAuthorizedToSeePosts(userId, post.AuthorId))
+                throw new PrivateAccountNonsubException();
+
+            return _mapper.Map<PostModel>(post);
         }
-        private void FixContent(PostAttachment src, AttachmentExternalModel dest)
+
+        public async Task<List<PostModel>> GetUserPosts(Guid userId, Guid authorId, int skip, int take)
         {
-            dest.ContentLink = _linkContentGenerator?.Invoke(src);
+            var isSubbed = await IsAuthorizedToSeePosts(userId, authorId);
+            if (!isSubbed)
+                throw new PrivateAccountNonsubException();
+
+            var posts = await _context.Posts
+                .IncludeAuthorWithAvatar()
+                .Include(x => x.Content)
+                .AsNoTracking()
+                .Where(p => p.AuthorId == authorId && p.IsShown)
+                .OrderByDescending(x => x.PublishDate).Skip(skip).Take(take)
+                .Select(x => _mapper.Map<PostModel>(x)).ToListAsync();
+
+            return posts;
+        }
+
+        private async Task<bool> IsAuthorizedToSeePosts(Guid userId, Guid authorId)
+        {
+            if (userId == authorId) 
+                return true;
+
+            var dbAuthor = await _context.Users.Include(u => u.Subscribers).FirstAsync(u => u.Id == authorId);
+            if (!dbAuthor.IsActive)
+                return false;
+
+            if (!dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.IsConfirmed))
+                return true;
+            return false;
         }
     }
 }

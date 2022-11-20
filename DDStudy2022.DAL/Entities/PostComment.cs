@@ -15,5 +15,6 @@ namespace DDStudy2022.DAL.Entities
         public string Content { get; set; } = null!;
         public Guid PostId { get; set; }
         public DateTimeOffset PublishDate { get; set; }
+        public bool IsModified { get; set; } = false;
     }
 }

@@ -1,5 +1,7 @@
+using AspNetCoreRateLimit;
 using AutoMapper.Configuration.Annotations;
 using DDStudy2022.Api.Configs;
+using DDStudy2022.Api.Mapper;
 using DDStudy2022.Api.Middleware;
 using DDStudy2022.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -52,6 +54,9 @@ namespace DDStudy2022.Api
                         new List<string>()
                     }
                 });
+
+                c.SwaggerDoc("Auth", new OpenApiInfo { Title = "Auth" });
+                c.SwaggerDoc("Api", new OpenApiInfo { Title = "Api" });
             });
 
             // Регистрация сессии с нашей ДБ 
@@ -60,13 +65,29 @@ namespace DDStudy2022.Api
                 options.UseNpgsql(builder.Configuration.GetConnectionString("PostreSQL"), sql => { });
             });
 
-            builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
+            // Анти дудос
+            builder.Services.AddOptions();
+            builder.Services.AddMemoryCache();
+            builder.Services.Configure<ClientRateLimitOptions>(builder.Configuration.GetSection("ClientRateLimiting"));
+            builder.Services.Configure<ClientRateLimitPolicies>(builder.Configuration.GetSection("ClientRateLimitPolicies"));
+            builder.Services.AddInMemoryRateLimiting();
+            builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
+            builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
+            
+            // Наши кастомные сервисы
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<AuthService>();
-            builder.Services.AddScoped<AttachmentService>();
-            builder.Services.AddScoped<PostService>();
 
+            builder.Services.AddTransient<AttachmentService>();
+            builder.Services.AddScoped<LinkGeneratorService>();
+            
+            builder.Services.AddScoped<PostService>();
+            builder.Services.AddScoped<CommentService>();
+            
+            builder.Services.AddScoped<SubscriptionService>();
+
+            //builder.Services.AddSingleton<DdosGuard>();
 
             // Аутентификация и авторизация
             builder.Services.AddAuthentication(o =>
@@ -115,16 +136,22 @@ namespace DDStudy2022.Api
             // if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("Api/swagger.json", "Api");
+                    c.SwaggerEndpoint("Auth/swagger.json", "Auth");
+                });
             }
 
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
+            app.UseClientRateLimiting();
+            //app.UseCustomDdosProtection();
+            
             app.UseAuthorization();
-            // Наша валидация с помощью middleware
             app.UseTokenValidator();
-
+            app.UseGlobalErrorWrapper();
             app.MapControllers();
 
             app.Run();

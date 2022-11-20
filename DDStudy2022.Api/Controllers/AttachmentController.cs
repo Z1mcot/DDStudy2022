@@ -5,6 +5,7 @@ using DDStudy2022.Api.Models.Comments;
 using DDStudy2022.Api.Models.Posts;
 using DDStudy2022.Api.Services;
 using DDStudy2022.Common.Consts;
+using DDStudy2022.Common.Exceptions;
 using DDStudy2022.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ namespace DDStudy2022.Api.Controllers
     [Route("api/[controller]/[action]")]
     [ApiController]
     [Authorize]
+    [ApiExplorerSettings(GroupName = "Api")]
     public class AttachmentController : ControllerBase
     {
         private readonly AttachmentService _attachmentService;
@@ -32,25 +34,31 @@ namespace DDStudy2022.Api.Controllers
             => await _attachmentService.UploadFiles(files);
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("{postContentId}")]
-        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false) 
-            => RenderAttachment(await _postService.GetPostContent(postContentId), download);
+        public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            //if (userId == default)
+            //    throw new IdClaimConversionException();
+            
+            return RenderAttachment(await _postService.GetPostContent(userId, postContentId), download);
+        }
 
         [HttpGet]
         [Route("{userId}")]
-        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false) 
+        public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
             => RenderAttachment(await _userService.GetUserAvatar(userId), download);
 
         [HttpGet]
         public async Task<FileStreamResult> GetCurrentUserAvatar(bool download = false)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId != default)
-            {
-                return await GetUserAvatar(userId, download);
-            }
-            else
-                throw new Exception("you are not authorized");
+            if (userId == default)
+                throw new IdClaimConversionException();
+
+            return await GetUserAvatar(userId, download);
+
         }
 
         [HttpPost]
@@ -75,7 +83,7 @@ namespace DDStudy2022.Api.Controllers
                 }
             }
             else
-                throw new Exception("Seems like you don\'t exist");
+                throw new IdClaimConversionException();
         }
 
 

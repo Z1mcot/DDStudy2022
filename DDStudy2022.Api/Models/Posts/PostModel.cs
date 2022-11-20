@@ -9,7 +9,7 @@ namespace DDStudy2022.Api.Models.Posts
         public string? Description { get; set; }
         public UserAvatarModel Author { get; set; } = null!;
         public List<AttachmentExternalModel> Content { get; set; } = null!;
-        public DateTime PublishDate { get; set; }
+        public DateTimeOffset PublishDate { get; set; }
         public bool IsModified { get; set; } = false;
     }
 }

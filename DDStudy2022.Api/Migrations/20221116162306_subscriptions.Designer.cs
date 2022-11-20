@@ -3,6 +3,7 @@ using System;
 using DDStudy2022.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20221116162306_subscriptions")]
+    partial class subscriptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -95,9 +98,6 @@ namespace DDStudy2022.Api.Migrations
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsModified")
-                        .HasColumnType("boolean");
 
                     b.Property<Guid>("PostId")
                         .HasColumnType("uuid");
@@ -184,9 +184,6 @@ namespace DDStudy2022.Api.Migrations
 
                     b.Property<Guid>("SubscriberId")
                         .HasColumnType("uuid");
-
-                    b.Property<bool>("IsConfirmed")
-                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset>("SubscriptionDate")
                         .HasColumnType("timestamp with time zone");
@@ -276,7 +273,7 @@ namespace DDStudy2022.Api.Migrations
             modelBuilder.Entity("DDStudy2022.DAL.Entities.UserSubscription", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
-                        .WithMany("Subscribers")
+                        .WithMany("Subscrbers")
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -339,7 +336,7 @@ namespace DDStudy2022.Api.Migrations
 
                     b.Navigation("Posts");
 
-                    b.Navigation("Subscribers");
+                    b.Navigation("Subscrbers");
 
                     b.Navigation("Subscriptions");
 

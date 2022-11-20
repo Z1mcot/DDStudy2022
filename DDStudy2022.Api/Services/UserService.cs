@@ -1,18 +1,12 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
-using DDStudy2022.Api.Configs;
 using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.Api.Models.Sessions;
-using DDStudy2022.Api.Models.Tokens;
 using DDStudy2022.Api.Models.Users;
 using DDStudy2022.Common;
+using DDStudy2022.Common.Exceptions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace DDStudy2022.Api.Services
 {
@@ -20,46 +14,26 @@ namespace DDStudy2022.Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
-        private readonly AuthService _authService;
-        private Func<User, string?>? _linkGenerator;
-        public void SetLinkGenerator(Func<User, string?> linkGenerator)
-        {
-            _linkGenerator = linkGenerator;
-        }
 
-        public UserService(IMapper mapper, DataContext context, AuthService authService)
+        public UserService(IMapper mapper, DataContext context)
         {
             _mapper = mapper;
             _context = context;
-            _authService = authService;
         }
 
         public async Task<Guid> CreateUser(CreateUserModel model)
         {
-            var dbUser = _mapper.Map<DAL.Entities.User>(model);
+            var dbUser = _mapper.Map<User>(model);
             var t = await _context.Users.AddAsync(dbUser);
             await _context.SaveChangesAsync();
             return t.Entity.Id;
         }
 
-
-
-        private async Task<User> GetUserById(Guid userId)
-        {
-            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
-            if (userEntity == null)
-                throw new Exception("user not found");
-
-            return userEntity;
-        }
-
-        
-
         public async Task ChangeUserPassword(Guid userId, string OldPassword, string newPassword)
         {
             var user = await GetUserById(userId);
             if (!HashHelper.Verify(OldPassword, user.PasswordHash))
-                throw new Exception("Wrong password");
+                throw new Exception("Wrong password"); // TODO
 
             user.PasswordHash = HashHelper.GetHash(newPassword);
             await _context.SaveChangesAsync();
@@ -90,40 +64,85 @@ namespace DDStudy2022.Api.Services
             return attachment;
         }
 
-        // SuspendUser вместо DeleteUser
+        public async Task UnsuspendUser(Guid userId)
+        {
+            // Когда-нибудь
+        }
+
         public async Task SuspendUser(Guid userId)
         {
             var user = await GetUserById(userId);
-            if (user == null)
-                throw new Exception("user not found");
-            // Блокируем аккаунт юзера
-            user.IsActive = false;
 
-            // И деактивируем все сессии.
-            var allActiveSessions = await _authService.GetUserSessions(user.Id);
-            foreach (var session in allActiveSessions)
-                await _authService.DeactivateSession(session.RefreshToken);
+            user.IsActive = false;
+            await DeactivateAllUserSessions(userId);
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
-            => _mapper.Map<List<SessionModel>>(await _authService.GetUserSessions(userId));
-
         public async Task<IEnumerable<UserAvatarModel>> GetUsers() 
-            => (await _context.Users.AsNoTracking().Include(x => x.Avatar).ToListAsync())
-                .Select(x => _mapper.Map<User, UserAvatarModel>(x, opt => opt.AfterMap(FixAvatar)));
+            => await _context.Users
+            .Include(x => x.Avatar)
+            .AsNoTracking()
+            .Where(u => u.IsActive)
+            .Select(x => _mapper.Map<UserAvatarModel>(x)).ToListAsync();
 
         public async Task<UserAvatarModel> GetUserModel(Guid userId)
         {
             var user = await GetUserById(userId);
 
-            return _mapper.Map<User, UserAvatarModel>(user, opt => opt.AfterMap(FixAvatar));
+            return _mapper.Map<UserAvatarModel>(user);
         }
 
-        private void FixAvatar(User src, UserAvatarModel dest)
+        public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
+            => _mapper.Map<List<SessionModel>>(await GetUserSessions(userId));
+
+        public async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
         {
-            dest.AvatarLink = src.Avatar == null ? null : _linkGenerator?.Invoke(src);
+            var sessions = await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
+            if (sessions == null)
+                throw new SessionNotFoundException();
+
+            return sessions;
+        }
+
+        public async Task DeactivateSession(Guid refreshToken)
+        {
+            var session = await GetSessionByRefreshToken(refreshToken);
+            session.IsActive = false;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeactivateAllUserSessions(Guid userId)
+        {
+            var allActiveSessions = await GetUserSessions(userId);
+            foreach (var session in allActiveSessions)
+                await DeactivateSession(session.RefreshToken);
+        }
+
+        public async Task ChangeAccountPrivacySetting(Guid userId)
+        {
+            var user = await GetUserById(userId);
+            user.IsPrivate ^= true;
+
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<User> GetUserById(Guid userId)
+        {
+            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
+            if (userEntity == null)
+                throw new UserNotFoundException();
+
+            return userEntity;
+        }
+
+        private async Task<UserSession> GetSessionByRefreshToken(Guid id)
+        {
+            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);
+            if (session == null)
+                throw new SessionNotFoundException();
+            return session;
         }
     }
 }
