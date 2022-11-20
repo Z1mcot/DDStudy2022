@@ -31,7 +31,7 @@ namespace DDStudy2022.Api.Controllers
         public async Task<IEnumerable<UserAvatarModel>> GetUsers() => await _userService.GetUsers();
 
         [HttpGet]
-        public async Task<UserAvatarModel> GetCurrentUser()
+        public async Task<UserProfileModel> GetCurrentUser()
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
@@ -40,6 +40,10 @@ namespace DDStudy2022.Api.Controllers
             return await _userService.GetUserModel(userId);
 
         }
+
+        [HttpGet]
+        public async Task<UserProfileModel> GetUserProfile(Guid userId) 
+            => await _userService.GetUserModel(userId);
 
         [HttpPost]
         public async Task ChangeCurrentUserPassword(PasswordChangeModel model)

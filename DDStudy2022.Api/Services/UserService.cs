@@ -64,10 +64,10 @@ namespace DDStudy2022.Api.Services
             return attachment;
         }
 
-        public async Task UnsuspendUser(Guid userId)
-        {
-            // Когда-нибудь
-        }
+        //public async Task UnsuspendUser(Guid userId)
+        //{
+        //    // Когда-нибудь
+        //}
 
         public async Task SuspendUser(Guid userId)
         {
@@ -86,11 +86,17 @@ namespace DDStudy2022.Api.Services
             .Where(u => u.IsActive)
             .Select(x => _mapper.Map<UserAvatarModel>(x)).ToListAsync();
 
-        public async Task<UserAvatarModel> GetUserModel(Guid userId)
+        public async Task<UserProfileModel> GetUserModel(Guid userId)
         {
-            var user = await GetUserById(userId);
+            var user = await _context.Users.Include(u => u.Avatar)
+                                           .Include(u => u.Subscribers)
+                                           .Include(u => u.Posts)
+                                           .Include(u => u.Subscriptions)
+                                           .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new UserNotFoundException();
 
-            return _mapper.Map<UserAvatarModel>(user);
+            return _mapper.Map<UserProfileModel>(user);
         }
 
         public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)

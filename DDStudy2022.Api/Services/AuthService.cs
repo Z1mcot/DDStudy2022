@@ -31,7 +31,7 @@ namespace DDStudy2022.Api.Services
                 throw new UserNotFoundException();
 
             if (!HashHelper.Verify(password, user.PasswordHash))
-                throw new Exception("Wrong password");
+                throw new WrongPasswordException();
 
             return user;
         }
@@ -42,7 +42,7 @@ namespace DDStudy2022.Api.Services
             if (session.User == null)
                 throw new SessionNotFoundException();
             if (!session.User.IsActive) // Ну а вдруг
-                throw new Exception("your account has been suspended");
+                throw new AccountDeactivatedException();
 
             var accessJwt = new JwtSecurityToken(
                     issuer: _config.Issuer,
@@ -113,7 +113,7 @@ namespace DDStudy2022.Api.Services
                 var session = await GetSessionByRefreshToken(refreshId);
                 if (!session.IsActive)
                 {
-                    throw new Exception("session timed out");
+                    throw new SessionTimeoutException();
                 }
 
                 var user = session.User;

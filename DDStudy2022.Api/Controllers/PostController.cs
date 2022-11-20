@@ -148,5 +148,35 @@ namespace DDStudy2022.Api.Controllers
 
             return await _commentService.GetPostComments(userId, postId, skip, take);
         }
+
+        [HttpPost]
+        public async Task AddLikeToPost(PostLikeModel model)
+        {
+            if (!model.UserId.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                model.UserId = userId;
+            }
+
+            await _postService.AddLikeToPost(model);
+        }
+
+        [HttpPost]
+        public async Task RemoveLikeFromPost(PostLikeModel model)
+        {
+            if (!model.UserId.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                model.UserId = userId;
+            }
+
+            await _postService.RemoveLikeFromPost(model);
+        }
     }
 }

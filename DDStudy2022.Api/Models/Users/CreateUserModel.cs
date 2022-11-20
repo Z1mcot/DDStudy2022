@@ -7,6 +7,8 @@ namespace DDStudy2022.Api.Models.Users
         [Required]
         public string Name { get; set; }
         [Required]
+        public string NameTag { get; set; }
+        [Required]
         public string Email { get; set; }
         [Required]
         public string Password { get; set; }
@@ -16,9 +18,10 @@ namespace DDStudy2022.Api.Models.Users
         [Required]
         public DateTimeOffset BirthDate { get; set; }
 
-        public CreateUserModel(string name, string email, string password, string retryPassword, DateTimeOffset birthDate)
+        public CreateUserModel(string name, string nameTag, string email, string password, string retryPassword, DateTimeOffset birthDate)
         {
             Name = name;
+            NameTag = nameTag;
             Email = email;
             Password = password;
             RetryPassword = retryPassword;

@@ -47,7 +47,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task ConfirmSubscriber(Guid authorId, Guid subscriberId)
         {
-            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == authorId && s.SubscriberId == subscriberId);
+            var sub = await _context.Subscriptions.FindAsync(authorId, subscriberId);
             if (sub == null)
                 throw new SubscriptionRequestNotFoundException();
 
@@ -85,6 +85,4 @@ namespace DDStudy2022.Api.Services
                 .ToListAsync();
         }
     }
-    
-
 }

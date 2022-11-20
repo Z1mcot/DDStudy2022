@@ -10,7 +10,7 @@ namespace DDStudy2022.Common.Exceptions
     {
         public string? Model { get; set; }
 
-        public override string Message => $"{Model} is not found";
+        public override string Message => $"{Model} not found";
     }
 
 
@@ -67,6 +67,30 @@ namespace DDStudy2022.Common.Exceptions
         public AttachmentNotFoundException()
         {
             Model = "Attachment(-s)";
+        }
+    }
+
+    public class TempDirNotFoundException : NotFoundException
+    {
+        public TempDirNotFoundException()
+        {
+            Model = "Temp directory";
+        }
+    }
+
+    public class TempFileNotFoundException : NotFoundException
+    {
+        public TempFileNotFoundException()
+        {
+            Model = "Temp file";
+        }
+    }
+
+    public class LikeNotFoundException : NotFoundException
+    {
+        public LikeNotFoundException()
+        {
+            Model = "Like";
         }
     }
 }

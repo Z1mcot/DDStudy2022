@@ -22,10 +22,16 @@ namespace DDStudy2022.Api.Mapper
                 .ForMember(dest => dest.Id, map => map.MapFrom(src => Guid.NewGuid()))
                 .ForMember(dest => dest.PasswordHash, map => map.MapFrom(src => HashHelper.GetHash(src.Password)))
                 .ForMember(dest => dest.BirthDate, map => map.MapFrom(src => src.BirthDate.UtcDateTime))
-                .ForMember(dest => dest.IsActive, map => map.MapFrom(src => true));
+                .ForMember(dest => dest.IsActive, map => map.MapFrom(src => true))
+                .ForMember(dest => dest.NameTag, map => map.MapFrom(src => $"@{src.NameTag}"));
 
             CreateMap<User, UserModel>();
             CreateMap<User, UserAvatarModel>()
+                .AfterMap<UserAvatarMapperAction>();
+            CreateMap<User, UserProfileModel>()
+                .ForMember(dest => dest.SubscribersCount, map => map.MapFrom(src => src.Subscribers == null ? 0 : src.Subscribers.Count))
+                .ForMember(dest => dest.SubscriptionsCount, map => map.MapFrom(src => src.Subscriptions == null ? 0 : src.Subscriptions.Count))
+                .ForMember(dest => dest.PostsCount, map => map.MapFrom(src => src.Posts == null ? 0 : src.Posts.Count))
                 .AfterMap<UserAvatarMapperAction>();
 
             // Сессии
@@ -43,7 +49,8 @@ namespace DDStudy2022.Api.Mapper
                 .ForMember(dest => dest.IsShown, map => map.MapFrom(src => true))
                 .ForMember(dest => dest.Content, map => map.MapFrom(src => src.Content))
                 .ForMember(dest => dest.PublishDate, map => map.MapFrom(src => DateTimeOffset.UtcNow));
-            CreateMap<Post, PostModel>();
+            CreateMap<Post, PostModel>()
+                .ForMember(dest => dest.Likes, map => map.MapFrom(src => src.Likes == null ? 0 : src.Likes.Count));
             CreateMap<ModifyPostRequest, ModifyPostModel>();
 
             // Комменты
@@ -58,6 +65,10 @@ namespace DDStudy2022.Api.Mapper
             // Подписки
             CreateMap<MakeSubscribtionRequest, UserSubscription>()
                 .ForMember(dest => dest.SubscriptionDate, map => map.MapFrom(src => DateTimeOffset.UtcNow));
+
+            // Лайки
+            CreateMap<PostLikeModel, PostLike>();
+            CreateMap<PostLike, PostLikeModel>();
         }
     }
 }

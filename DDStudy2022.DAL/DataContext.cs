@@ -20,6 +20,9 @@ namespace DDStudy2022.DAL
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Name)
                 .IsUnique();
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.NameTag)
+                .IsUnique();
 
             modelBuilder.Entity<Avatar>()
                 .ToTable(nameof(Avatars));
@@ -33,12 +36,25 @@ namespace DDStudy2022.DAL
                 .HasOne(us => us.Author)
                 .WithMany(u => u.Subscribers)
                 .HasForeignKey(us => us.AuthorId)
-                .OnDelete(DeleteBehavior.Restrict); // для предотвращения циклов и проблем с multiple cascade path
-                                                    // , но придётся вручную удалять подпивчеков
+                .OnDelete(DeleteBehavior.Restrict); // для предотвращения циклов и проблем с multiple cascade path (так сказал мудрый интернет :))
+                                                    
             modelBuilder.Entity<UserSubscription>()
                 .HasOne(us => us.Subscriber)
                 .WithMany(u => u.Subscriptions)
                 .HasForeignKey(us => us.SubscriberId);
+
+            modelBuilder.Entity<PostLike>()
+                .HasKey(l => new { l.UserId, l.PostId });
+
+            modelBuilder.Entity<PostLike>()
+                .HasOne(l => l.User)
+                .WithMany(u => u.LikedPosts)
+                .HasForeignKey(l => l.UserId);
+
+            modelBuilder.Entity<PostLike>()
+                .HasOne(l => l.Post)
+                .WithMany(u => u.Likes)
+                .HasForeignKey(l => l.PostId);
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -52,5 +68,6 @@ namespace DDStudy2022.DAL
         public DbSet<PostAttachment> PostContent => Set<PostAttachment>();
         public DbSet<PostComment> PostComments => Set<PostComment>();
         public DbSet<UserSubscription> Subscriptions => Set<UserSubscription>();
+        public DbSet<PostLike> PostLikes => Set<PostLike>();
     }
 }

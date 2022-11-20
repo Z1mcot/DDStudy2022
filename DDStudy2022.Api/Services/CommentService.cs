@@ -20,6 +20,12 @@ namespace DDStudy2022.Api.Services
 
         public async Task AddComment(AddCommentModel model)
         {
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == model.PostId);
+            if (post == null)
+                throw new PostNotFoundException();
+            if (!await IsAuthorizedToSeeComments((Guid)model.AuthorId!, post.AuthorId))
+                throw new PrivateAccountNonsubException();
+
             var dbModel = _mapper.Map<PostComment>(model);
 
             await _context.PostComments.AddAsync(dbModel);
@@ -55,7 +61,7 @@ namespace DDStudy2022.Api.Services
             var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
                 throw new PostNotFoundException();
-            if (!await IsAuthorizedToSeeComments(post.AuthorId, userId))
+            if (!await IsAuthorizedToSeeComments(userId, post.AuthorId))
                 throw new PrivateAccountNonsubException();
             
             var comments = await _context.PostComments.
@@ -73,20 +79,18 @@ namespace DDStudy2022.Api.Services
             if (comment == null)
                 throw new CommentNotFoundException();
             
-
             return comment;
-
         }
 
         private async Task<bool> IsAuthorizedToSeeComments(Guid userId, Guid authorId)
         {
-            if (userId == authorId)
+            if (userId == authorId) 
                 return true;
 
-            var dbAuthor = await _context.Users.Include(u => u.Subscribers).FirstAsync(u => u.Id == authorId); // К этому моменту всё должно быть чики пуки
+            var dbAuthor = await _context.Users.Include(u => u.Subscribers).FirstAsync(u => u.Id == authorId);
             if (!dbAuthor.IsActive)
                 return false;
-            
+
             if (!dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.IsConfirmed))
                 return true;
             return false;

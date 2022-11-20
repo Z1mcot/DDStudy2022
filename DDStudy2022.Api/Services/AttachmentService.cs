@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Configs;
 using DDStudy2022.Api.Models.Attachments;
+using DDStudy2022.Common.Exceptions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -27,10 +28,10 @@ namespace DDStudy2022.Api.Services
             var fileInfo = new FileInfo(newPath);
 
             if (fileInfo.Exists)
-                throw new Exception("Temp file with this name already exists");
+                throw new TempFileAlreadyExists();
 
             if (fileInfo.Directory == null)
-                throw new Exception("temp file directory is null");
+                throw new TempDirNotFoundException();
             if (!fileInfo.Directory.Exists)
                 fileInfo.Directory?.Create();
 

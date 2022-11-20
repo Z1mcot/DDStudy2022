@@ -69,7 +69,7 @@ namespace DDStudy2022.Api.Controllers
             {
                 var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
                 if (!tempFi.Exists)
-                    throw new Exception("file not found");
+                    throw new TempFileNotFoundException();
                 else
                 {
                     var path = Path.Combine(Directory.GetCurrentDirectory(), "Attachments", model.TempId.ToString());
