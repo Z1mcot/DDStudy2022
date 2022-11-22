@@ -136,7 +136,7 @@ namespace DDStudy2022.Api.Services
 
         private async Task<User> GetUserById(Guid userId)
         {
-            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId);
+            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
             if (userEntity == null)
                 throw new UserNotFoundException();
 

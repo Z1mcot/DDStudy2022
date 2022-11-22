@@ -61,7 +61,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task<List<CommentModel>> GetPostComments(Guid userId, Guid postId, int skip, int take)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            var post = await _context.Posts.Include(c => c.Likes).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
                 throw new PostNotFoundException();
             if (!await IsAuthorizedToSeeComments(userId, post.AuthorId))
@@ -79,7 +79,8 @@ namespace DDStudy2022.Api.Services
             {
                 var model = _mapper.Map<PostComment, CommentModel>(comment, opt =>
                 {
-                    opt.AfterMap((src, dest) => dest.IsLiked = src.Likes!.Any(l => l.UserId == userId && l.CommentId == comment.Id));
+                    opt.AfterMap((src, dest) 
+                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(l => l.UserId == userId && l.CommentId == comment.Id) : false);
                 });
                 comments.Add(model);
             }

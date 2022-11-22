@@ -52,7 +52,7 @@ namespace DDStudy2022.Api.Services
 
         public async Task ModifyPost(Guid postId, ModifyPostRequest request)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            var post = await _context.Posts.Include(x => x.Content).FirstOrDefaultAsync(x => x.Id == postId && x.IsShown);
             if (post == null)
                 throw new PostNotFoundException();
             if (post.AuthorId != request.AuthorId)
@@ -60,7 +60,6 @@ namespace DDStudy2022.Api.Services
 
 
             var model = _mapper.Map<ModifyPostModel>(request);
-
             model.Content.ForEach(x =>
             {
                 x.AuthorId = model.AuthorId;
@@ -80,16 +79,19 @@ namespace DDStudy2022.Api.Services
                 }
             });
 
+            var content = _mapper.Map<List<PostAttachment>>(model.Content);
+            _context.RemoveRange(post.Content.Except(content));
+
             post.Description = model.Description;
             post.IsModified = true;
-            post.Content = _mapper.Map<List<PostAttachment>>(model.Content);
+            post.Content = content;
 
             await _context.SaveChangesAsync();
         }
 
         public async Task UnlistPost(Guid userId, Guid postId)
         {
-            var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId);
+            var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId && x.IsShown);
             if (post == null)
                 throw new PostNotFoundException();
             if (post.AuthorId != userId)
@@ -100,7 +102,6 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        // К сожалению сюда IsAuthorizedToSeePosts не впихнуть.
         public async Task<List<PostModel>> GetPosts(Guid userId, int skip, int take)
         {
             var dbPosts = await _context.Posts
@@ -124,7 +125,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes!.Any(s => s.UserId == userId && s.PostId == post.Id));
+                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
                 });
                 posts.Add(model);
             }
@@ -164,7 +165,7 @@ namespace DDStudy2022.Api.Services
             var postModel = _mapper.Map<Post, PostModel>(post, opt => 
             {
                 opt.AfterMap((src, dest) 
-                    => dest.IsLiked = src.Likes!.Any(s => s.UserId == userId && s.PostId == postId)); 
+                    => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
             });
             return postModel;
         }
@@ -191,7 +192,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes!.Any(s => s.UserId == userId && s.PostId == post.Id));
+                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
                 });
                 posts.Add(model);
             }
