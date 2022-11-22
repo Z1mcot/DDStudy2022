@@ -6,6 +6,7 @@ using DDStudy2022.Api.Models.Comments;
 using DDStudy2022.Common.Consts;
 using DDStudy2022.Common.Extensions;
 using DDStudy2022.Common.Exceptions;
+using DDStudy2022.Api.Models.Likes;
 
 namespace DDStudy2022.Api.Controllers
 {
@@ -39,7 +40,7 @@ namespace DDStudy2022.Api.Controllers
             {
                 var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
                 if (userId == default)
-                    throw new IdClaimConversionException(); // TODO Другой эксепшон
+                    throw new IdClaimConversionException();
 
                 request.AuthorId = userId;
             } 
@@ -150,7 +151,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task AddLikeToPost(PostLikeModel model)
+        public async Task AddLikeToPost(ModifyPostLikeModel model)
         {
             if (!model.UserId.HasValue)
             {
@@ -165,7 +166,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task RemoveLikeFromPost(PostLikeModel model)
+        public async Task RemoveLikeFromPost(ModifyPostLikeModel model)
         {
             if (!model.UserId.HasValue)
             {
@@ -178,5 +179,36 @@ namespace DDStudy2022.Api.Controllers
 
             await _postService.RemoveLikeFromPost(model);
         }
+
+        [HttpPost]
+        public async Task AddLikeToComment(ModifyCommentLikeModel model)
+        {
+            if (!model.UserId.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                model.UserId = userId;
+            }
+
+            await _commentService.AddLikeToComment(model);
+        }
+
+        [HttpPost]
+        public async Task RemoveLikeFromComments(ModifyCommentLikeModel model)
+        {
+            if (!model.UserId.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                model.UserId = userId;
+            }
+
+            await _commentService.RemoveLikeFromComment(model);
+        }
+
     }
 }

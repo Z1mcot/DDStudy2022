@@ -6,6 +6,8 @@ namespace DDStudy2022.Api.Models.Comments
     {
         public UserAvatarModel Author { get; set; } = null!;
         public string Content { get; set; } = null!;
-        public DateTime PublishDate { get; set; }
+        public uint Likes { get; set; }
+        public bool IsLiked { get; set; }
+        public DateTimeOffset PublishDate { get; set; }
     }
 }

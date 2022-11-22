@@ -17,9 +17,11 @@ namespace DDStudy2022.DAL.Entities
         public Avatar? Avatar { get; set; } 
         public virtual ICollection<UserSession>? UserSessions { get; set; }
         public virtual ICollection<Post>? Posts { get; set; }
+        public virtual ICollection<Stories>? Stories { get; set; }
         public virtual ICollection<UserSubscription>? Subscriptions { get; set; }
         public virtual ICollection<UserSubscription>? Subscribers { get; set; } 
         public virtual ICollection<PostLike>? LikedPosts { get; set; }
+        public virtual ICollection<CommentLike>? LikedComments { get; set; }
         public bool IsActive { get; set; }
         public bool IsPrivate { get; set; }
     }

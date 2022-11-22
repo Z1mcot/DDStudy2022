@@ -5,7 +5,7 @@
 namespace DDStudy2022.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class uniqueNameTags : Migration
+    public partial class uniqueNametags : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

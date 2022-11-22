@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.Configuration.Annotations;
 using DDStudy2022.Api.Models.Comments;
+using DDStudy2022.Api.Models.Likes;
 using DDStudy2022.Common.Exceptions;
+using DDStudy2022.Common.Extensions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -64,15 +67,53 @@ namespace DDStudy2022.Api.Services
             if (!await IsAuthorizedToSeeComments(userId, post.AuthorId))
                 throw new PrivateAccountNonsubException();
             
-            var comments = await _context.PostComments.
-                Include(c => c.Author).ThenInclude(u => u.Avatar)
+            var dbComments = await _context.PostComments
+                .IncludeAuthorWithAvatar()
                 .AsNoTracking()
                 .Where(c => c.PostId == postId)
                 .OrderByDescending(c => c.PublishDate).Skip(skip).Take(take)
-                .Select(x => _mapper.Map<CommentModel>(x)).ToListAsync();
+                .ToListAsync();
+
+            var comments = new List<CommentModel>();
+            foreach (var comment in dbComments)
+            {
+                var model = _mapper.Map<PostComment, CommentModel>(comment, opt =>
+                {
+                    opt.AfterMap((src, dest) => dest.IsLiked = src.Likes!.Any(l => l.UserId == userId && l.CommentId == comment.Id));
+                });
+                comments.Add(model);
+            }
 
             return comments;
         }
+
+        public async Task AddLikeToComment(ModifyCommentLikeModel model)
+        {
+            var comment = await _context.PostComments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == model.CommentId);
+
+            if (comment == null)
+                throw new CommentNotFoundException();
+            if (!await IsAuthorizedToSeeComments((Guid)model.UserId!, comment.AuthorId))
+                throw new PrivateAccountNonsubException();
+
+            var dbLike = _mapper.Map<CommentLike>(model);
+
+            await _context.CommentLikes.AddAsync(dbLike);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RemoveLikeFromComment(ModifyCommentLikeModel model)
+        {
+            var like = await _context.CommentLikes.FirstOrDefaultAsync(x => x.UserId == model.UserId && x.CommentId == model.CommentId);
+            if (like == null)
+                throw new LikeNotFoundException();
+
+            _context.CommentLikes.Remove(like);
+            await _context.SaveChangesAsync();
+        }
+
         private async Task<PostComment> GetCommentById(Guid commentId)
         {
             var comment = await _context.PostComments.FirstOrDefaultAsync(c => c.Id == commentId);

@@ -30,9 +30,6 @@ namespace DDStudy2022.DAL
                 .ToTable(nameof(PostAttachment));
 
             modelBuilder.Entity<UserSubscription>()
-                .HasKey(us => new { us.AuthorId, us.SubscriberId });
-
-            modelBuilder.Entity<UserSubscription>()
                 .HasOne(us => us.Author)
                 .WithMany(u => u.Subscribers)
                 .HasForeignKey(us => us.AuthorId)
@@ -44,17 +41,35 @@ namespace DDStudy2022.DAL
                 .HasForeignKey(us => us.SubscriberId);
 
             modelBuilder.Entity<PostLike>()
-                .HasKey(l => new { l.UserId, l.PostId });
+                .ToTable(nameof(PostLike));
 
             modelBuilder.Entity<PostLike>()
                 .HasOne(l => l.User)
                 .WithMany(u => u.LikedPosts)
-                .HasForeignKey(l => l.UserId);
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<PostLike>()
                 .HasOne(l => l.Post)
                 .WithMany(u => u.Likes)
                 .HasForeignKey(l => l.PostId);
+
+            modelBuilder.Entity<CommentLike>()
+                .ToTable(nameof(CommentLike));
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(l => l.User)
+                .WithMany(u => u.LikedComments)
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(l => l.Comment)
+                .WithMany(u => u.Likes)
+                .HasForeignKey(l => l.CommentId);
+
+            modelBuilder.Entity<StoriesAttachment>()
+                .ToTable(nameof(StoriesAttachment));
 
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -68,6 +83,10 @@ namespace DDStudy2022.DAL
         public DbSet<PostAttachment> PostContent => Set<PostAttachment>();
         public DbSet<PostComment> PostComments => Set<PostComment>();
         public DbSet<UserSubscription> Subscriptions => Set<UserSubscription>();
+        //public DbSet<Like> Likes => Set<Like>();
         public DbSet<PostLike> PostLikes => Set<PostLike>();
+        public DbSet<CommentLike> CommentLikes => Set<CommentLike>(); 
+        public DbSet<Stories> Stories => Set<Stories>();
+        public DbSet<StoriesAttachment> StoriesContent => Set<StoriesAttachment>();
     }
 }

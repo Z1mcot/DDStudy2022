@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Models.Attachments;
+using DDStudy2022.Api.Models.Likes;
 using DDStudy2022.Api.Models.Posts;
 using DDStudy2022.Common.Exceptions;
 using DDStudy2022.Common.Extensions;
@@ -133,7 +134,10 @@ namespace DDStudy2022.Api.Services
 
         public async Task<AttachmentModel> GetPostContent(Guid userId, Guid postContentId)
         {
-            var res = await _context.PostContent.FirstOrDefaultAsync(x => x.Id == postContentId);
+            var res = await _context.PostContent
+                .Include(x => x.Post)
+                .FirstOrDefaultAsync(x => x.Id == postContentId && x.Post.IsShown);
+            
             if (res == null)
                 throw new AttachmentNotFoundException();
             if (!await IsAuthorizedToSeePosts(userId, res.AuthorId))
@@ -195,7 +199,7 @@ namespace DDStudy2022.Api.Services
             return posts;
         }
 
-        public async Task AddLikeToPost(PostLikeModel model)
+        public async Task AddLikeToPost(ModifyPostLikeModel model)
         {
             var post = await _context.Posts
                 .AsNoTracking()
@@ -212,9 +216,9 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveLikeFromPost(PostLikeModel model)
+        public async Task RemoveLikeFromPost(ModifyPostLikeModel model)
         {
-            var like = await _context.PostLikes.FindAsync(model.UserId, model.PostId);
+            var like = await _context.PostLikes.FirstOrDefaultAsync(l => l.UserId == model.UserId && l.PostId == model.PostId);
             if (like == null)
                 throw new LikeNotFoundException();
 

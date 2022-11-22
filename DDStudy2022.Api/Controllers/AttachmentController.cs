@@ -22,11 +22,13 @@ namespace DDStudy2022.Api.Controllers
         private readonly AttachmentService _attachmentService;
         private readonly PostService _postService;
         private readonly UserService _userService;
-        public AttachmentController(AttachmentService attachmentService, PostService postService, UserService userService)
+        private readonly StoriesService _storiesService;
+        public AttachmentController(AttachmentService attachmentService, PostService postService, UserService userService, StoriesService storiesService)
         {
             _attachmentService = attachmentService;
             _postService = postService;
             _userService = userService;
+            _storiesService = storiesService;
         }
 
         [HttpPost]
@@ -41,8 +43,20 @@ namespace DDStudy2022.Api.Controllers
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             //if (userId == default)
             //    throw new IdClaimConversionException();
-            
+
             return RenderAttachment(await _postService.GetPostContent(userId, postContentId), download);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("{storyContentId}")]
+        public async Task<FileStreamResult> GetStoryContent(Guid storyContentId, bool download = false)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            //if (userId == default)
+            //    throw new IdClaimConversionException();
+            
+            return RenderAttachment(await _storiesService.GetStoryContent(userId, storyContentId), download);
         }
 
         [HttpGet]

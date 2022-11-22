@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20221117012811_fixSubscriptions")]
-    partial class fixSubscriptions
+    [Migration("20221122183121_uniqueNametags")]
+    partial class uniqueNametags
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -56,6 +56,27 @@ namespace DDStudy2022.Api.Migrations
                     b.ToTable("Attachments");
 
                     b.UseTptMappingStrategy();
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.CommentLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CommentLike", (string)null);
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
@@ -117,6 +138,49 @@ namespace DDStudy2022.Api.Migrations
                     b.ToTable("PostComments");
                 });
 
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PostLike", (string)null);
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.Stories", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsShown")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("PublishDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Stories");
+                });
+
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -140,6 +204,10 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("NameTag")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -150,6 +218,9 @@ namespace DDStudy2022.Api.Migrations
                         .IsUnique();
 
                     b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("NameTag")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -182,19 +253,25 @@ namespace DDStudy2022.Api.Migrations
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.UserSubscription", b =>
                 {
-                    b.Property<Guid>("AuthorId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("SubscriberId")
+                    b.Property<Guid>("AuthorId")
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("SubscriberId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("SubscriptionDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("AuthorId", "SubscriberId");
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
 
                     b.HasIndex("SubscriberId");
 
@@ -226,6 +303,19 @@ namespace DDStudy2022.Api.Migrations
                     b.ToTable("PostAttachment", (string)null);
                 });
 
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.StoriesAttachment", b =>
+                {
+                    b.HasBaseType("DDStudy2022.DAL.Entities.Attachment");
+
+                    b.Property<Guid>("StoriesId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("StoriesId")
+                        .IsUnique();
+
+                    b.ToTable("StoriesAttachment");
+                });
+
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Attachment", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
@@ -235,6 +325,25 @@ namespace DDStudy2022.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.CommentLike", b =>
+                {
+                    b.HasOne("DDStudy2022.DAL.Entities.PostComment", "Comment")
+                        .WithMany("Likes")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DDStudy2022.DAL.Entities.User", "User")
+                        .WithMany("LikedComments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
@@ -259,6 +368,36 @@ namespace DDStudy2022.Api.Migrations
                     b.HasOne("DDStudy2022.DAL.Entities.Post", null)
                         .WithMany("Comments")
                         .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostLike", b =>
+                {
+                    b.HasOne("DDStudy2022.DAL.Entities.Post", "Post")
+                        .WithMany("Likes")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DDStudy2022.DAL.Entities.User", "User")
+                        .WithMany("LikedPosts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.Stories", b =>
+                {
+                    b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
+                        .WithMany("Stories")
+                        .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -329,18 +468,54 @@ namespace DDStudy2022.Api.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.StoriesAttachment", b =>
+                {
+                    b.HasOne("DDStudy2022.DAL.Entities.Attachment", null)
+                        .WithOne()
+                        .HasForeignKey("DDStudy2022.DAL.Entities.StoriesAttachment", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DDStudy2022.DAL.Entities.Stories", "Stories")
+                        .WithOne("Content")
+                        .HasForeignKey("DDStudy2022.DAL.Entities.StoriesAttachment", "StoriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Stories");
+                });
+
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
                 {
                     b.Navigation("Comments");
 
                     b.Navigation("Content");
+
+                    b.Navigation("Likes");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.PostComment", b =>
+                {
+                    b.Navigation("Likes");
+                });
+
+            modelBuilder.Entity("DDStudy2022.DAL.Entities.Stories", b =>
+                {
+                    b.Navigation("Content")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.User", b =>
                 {
                     b.Navigation("Avatar");
 
+                    b.Navigation("LikedComments");
+
+                    b.Navigation("LikedPosts");
+
                     b.Navigation("Posts");
+
+                    b.Navigation("Stories");
 
                     b.Navigation("Subscribers");
 

@@ -93,5 +93,13 @@ namespace DDStudy2022.Common.Exceptions
             Model = "Like";
         }
     }
+
+    public class StoriesNotFoundException: NotFoundException
+    {
+        public StoriesNotFoundException()
+        {
+            Model = "Story";
+        }
+    }
 }
 

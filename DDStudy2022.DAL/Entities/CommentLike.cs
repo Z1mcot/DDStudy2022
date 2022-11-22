@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace DDStudy2022.DAL.Entities
 {
-    public class PostLike : Like
+    public class CommentLike : Like
     {
-        public Guid PostId { get; set; }
-        public virtual Post Post { get; set; } = null!;
+        public Guid CommentId { get; set; }
+        public virtual PostComment Comment { get; set; } = null!;
     }
 }

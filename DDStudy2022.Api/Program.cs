@@ -87,6 +87,8 @@ namespace DDStudy2022.Api
             
             builder.Services.AddScoped<SubscriptionService>();
 
+            builder.Services.AddScoped<StoriesService>();
+
             //builder.Services.AddSingleton<DdosGuard>();
 
             // Аутентификация и авторизация
