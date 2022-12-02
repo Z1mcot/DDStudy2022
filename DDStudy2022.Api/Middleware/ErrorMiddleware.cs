@@ -25,7 +25,13 @@ namespace DDStudy2022.Api.Middleware
             }
             catch (ForbiddenActionException ex)
             {
-                context.Response.StatusCode = 403;
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(ex.Message);
+            }
+            catch (HttpRequestException ex)
+            {
+                if (ex.StatusCode != null) 
+                    context.Response.StatusCode = (int)ex.StatusCode;
                 await context.Response.WriteAsJsonAsync(ex.Message);
             }
         }

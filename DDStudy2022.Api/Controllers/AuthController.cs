@@ -22,8 +22,18 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<TokenModel> GenerateToken(TokenRequestModel model) 
-            => await _authService.GetToken(model.Login, model.Password);
+        public async Task<TokenModel> GenerateToken(TokenRequestModel model)
+        {
+            try
+            {
+                var token = await _authService.GetToken(model.Login, model.Password);
+                return token;
+            }
+            catch (Exception)
+            {
+                throw new HttpRequestException("not authorized", null, statusCode: System.Net.HttpStatusCode.Unauthorized);
+            }
+        }
 
         [HttpPost]
         public async Task<TokenModel> RenewToken(RefreshTokenRequestModel model) 
