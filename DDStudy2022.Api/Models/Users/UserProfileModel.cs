@@ -2,6 +2,8 @@
 {
     public class UserProfileModel : UserAvatarModel
     {
+        public string Email { get; set; } = null!;
+        public DateTimeOffset BirthDate { get; set; }
         public uint SubscriptionsCount { get; set; }
         public uint SubscribersCount { get; set; }
         public uint PostsCount { get; set; }
