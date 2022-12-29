@@ -7,7 +7,7 @@ namespace DDStudy2022.Api.Models.Posts
     {
         public Guid Id { get; set; }
         public string? Description { get; set; }
-        public UserAvatarModel Author { get; set; } = null!;
+        public UserProfileModel Author { get; set; } = null!;
         public List<AttachmentExternalModel> Content { get; set; } = null!;
         public uint Likes { get; set; }
         public uint Comments { get; set; }

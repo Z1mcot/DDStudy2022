@@ -60,6 +60,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [Route("{userId}")]
         public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
             => RenderAttachment(await _userService.GetUserAvatar(userId), download);
