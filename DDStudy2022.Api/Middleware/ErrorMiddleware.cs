@@ -34,6 +34,11 @@ namespace DDStudy2022.Api.Middleware
                     context.Response.StatusCode = (int)ex.StatusCode;
                 await context.Response.WriteAsJsonAsync(ex.Message);
             }
+            catch (UnsupportedMimeTypeException ex)
+            {
+                context.Response.StatusCode = 415;
+                await context.Response.WriteAsJsonAsync(ex.Message);
+            }
         }
     }
 

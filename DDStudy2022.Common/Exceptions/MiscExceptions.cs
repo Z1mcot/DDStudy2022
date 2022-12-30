@@ -21,4 +21,9 @@ namespace DDStudy2022.Common.Exceptions
     {
         public override string Message => $"account is suspended";
     }
+
+    public class UnsupportedMimeTypeException : Exception
+    {
+        public override string Message => $"unsupported mime type";
+    }
 }

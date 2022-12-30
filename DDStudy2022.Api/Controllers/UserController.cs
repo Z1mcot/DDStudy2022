@@ -45,6 +45,9 @@ namespace DDStudy2022.Api.Controllers
         public async Task<UserProfileModel> GetUserProfile(Guid userId) 
             => await _userService.GetUserModel(userId);
 
+        [HttpGet]
+        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag) => await _userService.SearchUsers(nameTag);
+
         [HttpPost]
         public async Task ChangeCurrentUserPassword(PasswordChangeModel model)
         {

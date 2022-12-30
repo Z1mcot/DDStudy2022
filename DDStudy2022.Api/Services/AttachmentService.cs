@@ -15,6 +15,12 @@ namespace DDStudy2022.Api.Services
 
         public async Task<MetadataModel> UploadFile(IFormFile file)
         {
+            string[] allowedMimeTypes = { "image/png", "image/jpg", "image/gif", "image/bmp", "video/mp4", "video/webm" };
+            if (!allowedMimeTypes.Contains(file.ContentType))
+            {
+                throw new UnsupportedMimeTypeException();
+            }
+
             var tempPath = Path.GetTempPath();
             var meta = new MetadataModel
             {

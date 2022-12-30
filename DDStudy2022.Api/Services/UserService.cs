@@ -150,5 +150,14 @@ namespace DDStudy2022.Api.Services
                 throw new SessionNotFoundException();
             return session;
         }
+
+        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag)
+        {
+            return await _context.Users.Include(u => u.Avatar)
+                                       .AsNoTracking()
+                                       .Where(u => u.NameTag.StartsWith(nameTag))
+                                       .Select(u => _mapper.Map<UserAvatarModel>(u))
+                                       .ToListAsync();
+        }
     }
 }
