@@ -73,7 +73,7 @@ namespace DDStudy2022.Api.Services
             return new TokenModel(encodedAccessJwt, encodedRefreshJwt);
         }
 
-        public async Task<TokenModel> GetToken(string login, string password)
+        public async Task<TokenModel> GetToken(string login, string password, string? ip)
         {
             var user = await GetUserByCredentials(login, password);
             var session = await _context.UserSessions.AddAsync(new UserSession
@@ -82,6 +82,7 @@ namespace DDStudy2022.Api.Services
                 User = user,
                 RefreshToken = Guid.NewGuid(),
                 Created = DateTime.UtcNow,
+                IPAddress = ip,
             });
 
             await _context.SaveChangesAsync();

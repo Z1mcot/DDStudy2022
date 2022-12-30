@@ -26,7 +26,7 @@ namespace DDStudy2022.Api.Controllers
         {
             try
             {
-                var token = await _authService.GetToken(model.Login, model.Password);
+                var token = await _authService.GetToken(model.Login, model.Password, model.Ip);
                 return token;
             }
             catch (Exception)

@@ -105,8 +105,8 @@ namespace DDStudy2022.Api.Services
         public async Task<List<PostModel>> GetPosts(Guid userId, int skip, int take)
         {
             var dbPosts = await _context.Posts
-                .IncludeAuthorWithAvatar()
-                .IncludeAuthorWithSubscribers()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
+                .Include(s => s.Author).ThenInclude(s => s.Subscribers)
                 .Include(x => x.Content)
                 .Include(x => x.Likes)
                 .AsNoTracking()
@@ -125,7 +125,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
                 });
                 posts.Add(model);
             }
@@ -151,7 +151,7 @@ namespace DDStudy2022.Api.Services
         public async Task<PostModel> GetPostById(Guid userId, Guid postId)
         {
             var post = await _context.Posts
-                .IncludeAuthorWithAvatar()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(x => x.Content)
                 .Include(x => x.Likes)
                 .AsNoTracking()
@@ -165,7 +165,7 @@ namespace DDStudy2022.Api.Services
             var postModel = _mapper.Map<Post, PostModel>(post, opt => 
             {
                 opt.AfterMap((src, dest) 
-                    => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
+                    => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
             });
             return postModel;
         }
@@ -177,7 +177,7 @@ namespace DDStudy2022.Api.Services
                 throw new PrivateAccountNonsubException();
 
             var dbPosts = await _context.Posts
-                .IncludeAuthorWithAvatar()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(x => x.Content)
                 .Include(x => x.Likes)
                 .AsNoTracking()
@@ -192,7 +192,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) : false);
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
                 });
                 posts.Add(model);
             }

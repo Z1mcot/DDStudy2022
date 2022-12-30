@@ -15,5 +15,7 @@ namespace DDStudy2022.DAL.Entities
         public bool IsActive { get; set; } = true;
         // На самом деле сессия не может существовать без юзера
         public virtual User User { get; set; } = null!;
+
+        public string? IPAddress { get; set; }
     }
 }

@@ -61,8 +61,8 @@ namespace DDStudy2022.Api.Services
         {
             var dtNow = DateTime.UtcNow;
             var stories = await _context.Stories
-                .IncludeAuthorWithAvatar()
-                .IncludeAuthorWithSubscribers()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
+                .Include(s => s.Author).ThenInclude(s => s.Subscribers)
                 .Include(s => s.Content)
                 .Where(s => s.AuthorId != userId && s.IsShown && s.ExpirationDate > dtNow 
                             && s.Author.IsActive
@@ -80,7 +80,7 @@ namespace DDStudy2022.Api.Services
 
             var dtNow = DateTime.UtcNow;
             var stories = await _context.Stories
-                .IncludeAuthorWithAvatar()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(s => s.Content)
                 .Where(s => s.IsShown && s.AuthorId == authorId && s.ExpirationDate > dtNow)
                 .Select(s => _mapper.Map<StoriesModel>(s))
@@ -93,7 +93,7 @@ namespace DDStudy2022.Api.Services
         {
             var dtNow = DateTime.UtcNow;
             var story = await _context.Stories
-                .IncludeAuthorWithAvatar()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(s => s.Content)
                 .FirstOrDefaultAsync(s => s.IsShown && s.Id == storyId && s.ExpirationDate > dtNow);
 

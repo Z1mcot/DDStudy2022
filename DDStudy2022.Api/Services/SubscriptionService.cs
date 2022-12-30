@@ -58,7 +58,7 @@ namespace DDStudy2022.Api.Services
         public async Task<List<UserAvatarModel>> GetSubscriptionRequests(Guid authorId)
         {
             return await _context.Subscriptions
-                .IncludeSubscribersWithAvatar()
+                .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.AuthorId == authorId && !s.IsConfirmed)
                 .Select(s => _mapper.Map<UserAvatarModel>(s.Subscriber))
@@ -68,7 +68,7 @@ namespace DDStudy2022.Api.Services
         public async Task<List<UserAvatarModel>> GetSubscribers(Guid authorId)
         {
             return await _context.Subscriptions
-                .IncludeSubscribersWithAvatar()
+                .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.AuthorId == authorId && s.IsConfirmed)
                 .Select(s => _mapper.Map<UserAvatarModel>(s.Subscriber))
@@ -78,10 +78,10 @@ namespace DDStudy2022.Api.Services
         public async Task<List<UserAvatarModel>> GetSubscriptions(Guid userId)
         {
             return await _context.Subscriptions
-                .IncludeSubscribersWithAvatar()
+                .Include(s => s.Author).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.SubscriberId == userId && s.IsConfirmed)
-                .Select(s => _mapper.Map<UserAvatarModel>(s.Subscriber))
+                .Select(s => _mapper.Map<UserAvatarModel>(s.Author))
                 .ToListAsync();
         }
     }

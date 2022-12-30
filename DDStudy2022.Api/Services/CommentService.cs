@@ -68,7 +68,7 @@ namespace DDStudy2022.Api.Services
                 throw new PrivateAccountNonsubException();
             
             var dbComments = await _context.PostComments
-                .IncludeAuthorWithAvatar()
+                .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .AsNoTracking()
                 .Where(c => c.PostId == postId)
                 .OrderByDescending(c => c.PublishDate).Skip(skip).Take(take)
@@ -80,7 +80,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<PostComment, CommentModel>(comment, opt =>
                 {
                     opt.AfterMap((src, dest) 
-                        => dest.IsLiked = src.Likes != null ? src.Likes.Any(l => l.UserId == userId && l.CommentId == comment.Id) : false);
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(l => l.UserId == userId && l.CommentId == comment.Id));
                 });
                 comments.Add(model);
             }
