@@ -151,12 +151,13 @@ namespace DDStudy2022.Api.Services
             return session;
         }
 
-        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag)
+        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag, int skip, int take)
         {
             return await _context.Users.Include(u => u.Avatar)
                                        .AsNoTracking()
-                                       .Where(u => u.NameTag.StartsWith(nameTag))
+                                       .Where(u => u.NameTag.ToLower().StartsWith(nameTag.ToLower()))
                                        .Select(u => _mapper.Map<UserAvatarModel>(u))
+                                       .Skip(skip).Take(take)
                                        .ToListAsync();
         }
     }
