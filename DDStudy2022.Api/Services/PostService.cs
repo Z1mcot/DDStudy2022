@@ -200,7 +200,7 @@ namespace DDStudy2022.Api.Services
             return posts;
         }
 
-        public async Task AddLikeToPost(ModifyPostLikeModel model)
+        public async Task LikePost(ModifyPostLikeModel model)
         {
             var post = await _context.Posts
                 .AsNoTracking()
@@ -210,20 +210,18 @@ namespace DDStudy2022.Api.Services
                 throw new PostNotFoundException();
             if (!await IsAuthorizedToSeePosts((Guid)model.UserId!, post.AuthorId))
                 throw new PrivateAccountNonsubException();
-
-            var dbLike = _mapper.Map<PostLike>(model);
-
-            await _context.PostLikes.AddAsync(dbLike);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task RemoveLikeFromPost(ModifyPostLikeModel model)
-        {
+            
             var like = await _context.PostLikes.FirstOrDefaultAsync(l => l.UserId == model.UserId && l.PostId == model.PostId);
-            if (like == null)
-                throw new LikeNotFoundException();
-
-            _context.PostLikes.Remove(like);
+            if (like != null)
+            {
+                _context.PostLikes.Remove(like);
+            }
+            else
+            {
+                var dbLike = _mapper.Map<PostLike>(model);
+                await _context.PostLikes.AddAsync(dbLike);
+            }
+            
             await _context.SaveChangesAsync();
         }
 

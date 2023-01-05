@@ -151,7 +151,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task AddLikeToPost(ModifyPostLikeModel model)
+        public async Task LikePost(ModifyPostLikeModel model)
         {
             if (!model.UserId.HasValue)
             {
@@ -162,11 +162,11 @@ namespace DDStudy2022.Api.Controllers
                 model.UserId = userId;
             }
 
-            await _postService.AddLikeToPost(model);
+            await _postService.LikePost(model);
         }
 
         [HttpPost]
-        public async Task RemoveLikeFromPost(ModifyPostLikeModel model)
+        public async Task LikeComment(ModifyCommentLikeModel model)
         {
             if (!model.UserId.HasValue)
             {
@@ -177,38 +177,7 @@ namespace DDStudy2022.Api.Controllers
                 model.UserId = userId;
             }
 
-            await _postService.RemoveLikeFromPost(model);
+            await _commentService.LikeComment(model);
         }
-
-        [HttpPost]
-        public async Task AddLikeToComment(ModifyCommentLikeModel model)
-        {
-            if (!model.UserId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
-
-                model.UserId = userId;
-            }
-
-            await _commentService.AddLikeToComment(model);
-        }
-
-        [HttpPost]
-        public async Task RemoveLikeFromComments(ModifyCommentLikeModel model)
-        {
-            if (!model.UserId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
-
-                model.UserId = userId;
-            }
-
-            await _commentService.RemoveLikeFromComment(model);
-        }
-
     }
 }

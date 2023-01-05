@@ -88,7 +88,7 @@ namespace DDStudy2022.Api.Services
             return comments;
         }
 
-        public async Task AddLikeToComment(ModifyCommentLikeModel model)
+        public async Task LikeComment(ModifyCommentLikeModel model)
         {
             var comment = await _context.PostComments
                 .AsNoTracking()
@@ -99,19 +99,16 @@ namespace DDStudy2022.Api.Services
             if (!await IsAuthorizedToSeeComments((Guid)model.UserId!, comment.AuthorId))
                 throw new PrivateAccountNonsubException();
 
-            var dbLike = _mapper.Map<CommentLike>(model);
-
-            await _context.CommentLikes.AddAsync(dbLike);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task RemoveLikeFromComment(ModifyCommentLikeModel model)
-        {
             var like = await _context.CommentLikes.FirstOrDefaultAsync(x => x.UserId == model.UserId && x.CommentId == model.CommentId);
-            if (like == null)
-                throw new LikeNotFoundException();
-
-            _context.CommentLikes.Remove(like);
+            if (like != null)
+            {
+                _context.CommentLikes.Remove(like);
+            } else
+            {
+                var dbLike = _mapper.Map<CommentLike>(model);
+                await _context.CommentLikes.AddAsync(dbLike);
+            }
+               
             await _context.SaveChangesAsync();
         }
 
