@@ -108,6 +108,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(s => s.Author).ThenInclude(s => s.Subscribers)
                 .Include(x => x.Content)
+                .Include(x => x.Comments)
                 .Include(x => x.Likes)
                 .AsNoTracking()
                 .Where(p => p.AuthorId != userId // нет смысла выводит здесь свои же посты
@@ -125,7 +126,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
                 });
                 posts.Add(model);
             }
@@ -154,6 +155,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(x => x.Content)
                 .Include(x => x.Likes)
+                .Include(x => x.Comments)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == postId);
 
@@ -164,8 +166,8 @@ namespace DDStudy2022.Api.Services
 
             var postModel = _mapper.Map<Post, PostModel>(post, opt => 
             {
-                opt.AfterMap((src, dest) 
-                    => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
+                opt.AfterMap((src, dest)
+                    => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
             });
             return postModel;
         }
@@ -180,6 +182,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .Include(x => x.Content)
                 .Include(x => x.Likes)
+                .Include(x => x.Comments)
                 .AsNoTracking()
                 .Where(p => p.AuthorId == authorId && p.IsShown)
                 .OrderByDescending(x => x.PublishDate).Skip(skip).Take(take)
@@ -192,7 +195,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<Post, PostModel>(post, opt =>
                 {
                     opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id));
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
                 });
                 posts.Add(model);
             }

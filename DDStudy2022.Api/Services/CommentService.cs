@@ -80,7 +80,7 @@ namespace DDStudy2022.Api.Services
                 var model = _mapper.Map<PostComment, CommentModel>(comment, opt =>
                 {
                     opt.AfterMap((src, dest) 
-                        => dest.IsLiked = src.Likes != null && src.Likes.Any(l => l.UserId == userId && l.CommentId == comment.Id));
+                        => dest.IsLiked = src.Likes != null && src.Likes.Any(l => l.UserId == userId && l.CommentId == comment.Id) ? 1 : 0);
                 });
                 comments.Add(model);
             }

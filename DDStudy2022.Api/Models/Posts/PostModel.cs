@@ -12,7 +12,7 @@ namespace DDStudy2022.Api.Models.Posts
         public uint Likes { get; set; }
         public uint Comments { get; set; }
         public DateTimeOffset PublishDate { get; set; }
-        public bool IsModified { get; set; } = false;
-        public bool IsLiked { get; set; }
+        public int IsModified { get; set; } = 0;
+        public int IsLiked { get; set; }
     }
 }
