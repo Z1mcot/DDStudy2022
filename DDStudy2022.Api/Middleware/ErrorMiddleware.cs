@@ -28,6 +28,11 @@ namespace DDStudy2022.Api.Middleware
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsJsonAsync(ex.Message);
             }
+            catch (PrivateAccountException ex)
+            {
+                context.Response.StatusCode = 403;
+                await context.Response.WriteAsJsonAsync(ex.Message);
+            }
             catch (HttpRequestException ex)
             {
                 if (ex.StatusCode != null) 

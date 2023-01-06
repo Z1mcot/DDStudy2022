@@ -34,6 +34,7 @@ namespace DDStudy2022.Api.Mapper
                 .ForMember(dest => dest.SubscribersCount, map => map.MapFrom(src => src.Subscribers == null ? 0 : src.Subscribers.Count))
                 .ForMember(dest => dest.SubscriptionsCount, map => map.MapFrom(src => src.Subscriptions == null ? 0 : src.Subscriptions.Count))
                 .ForMember(dest => dest.PostsCount, map => map.MapFrom(src => src.Posts == null ? 0 : src.Posts.Count))
+                .ForMember(dest => dest.isPrivate, map => map.MapFrom(src => src.IsPrivate ? 1 : 0))
                 .AfterMap<UserAvatarMapperAction>();
 
             // Сессии

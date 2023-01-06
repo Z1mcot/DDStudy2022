@@ -171,7 +171,7 @@ namespace DDStudy2022.Api.Services
         {
             return await _context.Users.Include(u => u.Avatar)
                                        .AsNoTracking()
-                                       .Where(u => u.NameTag.ToLower().StartsWith(nameTag.ToLower()))
+                                       .Where(u => u.NameTag.ToLower().StartsWith(nameTag.ToLower()) && u.IsActive)
                                        .Select(u => _mapper.Map<UserAvatarModel>(u))
                                        .Skip(skip).Take(take)
                                        .ToListAsync();

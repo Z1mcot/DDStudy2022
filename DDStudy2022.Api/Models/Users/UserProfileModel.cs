@@ -7,5 +7,6 @@
         public uint SubscriptionsCount { get; set; }
         public uint SubscribersCount { get; set; }
         public uint PostsCount { get; set; }
+        public uint isPrivate { get; set; }
     }
 }

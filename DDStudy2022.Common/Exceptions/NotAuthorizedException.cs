@@ -38,7 +38,14 @@ namespace DDStudy2022.Common.Exceptions
         }
     }
 
-    public class PrivateAccountNonsubException : ForbiddenActionException
+    public class PrivateAccountException : Exception
+    {
+        public string? Action { get; set; }
+
+        public override string Message => $"You are not allowed to {Action}";
+    }
+
+    public class PrivateAccountNonsubException : PrivateAccountException
     {
         public PrivateAccountNonsubException()
         {
@@ -46,7 +53,7 @@ namespace DDStudy2022.Common.Exceptions
         }
     }
 
-    public class PrivateAccountInfoException : ForbiddenActionException
+    public class PrivateAccountInfoException : PrivateAccountException
     {
         public PrivateAccountInfoException()
         {
