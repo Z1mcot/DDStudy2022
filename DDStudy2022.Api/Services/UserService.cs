@@ -29,13 +29,29 @@ namespace DDStudy2022.Api.Services
             return t.Entity.Id;
         }
 
-        public async Task ChangeUserPassword(Guid userId, string OldPassword, string newPassword)
+        public async Task ChangeUserPassword(PasswordChangeRequest request)
         {
-            var user = await GetUserById(userId);
-            if (!HashHelper.Verify(OldPassword, user.PasswordHash))
+            var model = _mapper.Map<PasswordChangeModel>(request);
+
+            var user = await GetUserById(model.Id);
+            if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
                 throw new Exception("Wrong password"); // TODO
 
-            user.PasswordHash = HashHelper.GetHash(newPassword);
+            user.PasswordHash = HashHelper.GetHash(model.NewPassword);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ModifyUserInfo(ModifyUserInfoRequest request)
+        {
+            var model = _mapper.Map<ModifyUserInfoModel>(request);
+            
+            var user = await GetUserById(model.Id);
+            
+            user.Name = model.Name ?? user.Name;
+            user.NameTag = model.NameTag ?? user.NameTag;
+            user.Email = model.Email ?? user.Email;
+            user.BirthDate = model.BirthDate ?? user.BirthDate;
+
             await _context.SaveChangesAsync();
         }
 

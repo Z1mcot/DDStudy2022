@@ -49,14 +49,33 @@ namespace DDStudy2022.Api.Controllers
         public async Task<List<UserAvatarModel>> SearchUsers(string nameTag, int skip = 0, int take = 10) => await _userService.SearchUsers(nameTag, skip, take);
 
         [HttpPost]
-        public async Task ChangeCurrentUserPassword(PasswordChangeModel model)
+        public async Task ChangeCurrentUserPassword(PasswordChangeRequest request)
         {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new IdClaimConversionException();
+            if (!request.Id.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
 
-            await _userService.ChangeUserPassword(userId, model.OldPassword, model.NewPassword);
+                request.Id = userId;
+            }
 
+            await _userService.ChangeUserPassword(request);
+        }
+
+        [HttpPost]
+        public async Task ModifyUserInfo(ModifyUserInfoRequest request)
+        {
+            if (!request.Id.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                request.Id = userId;
+            }
+
+            await _userService.ModifyUserInfo(request);
         }
 
         [HttpPost]

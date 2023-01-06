@@ -2,9 +2,9 @@
 
 namespace DDStudy2022.Api.Models.Users
 {
-    public class PasswordChangeModel
+    public class PasswordChangeRequest
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         [Required]
         public string OldPassword { get; set; } = null!;
         [Required]
