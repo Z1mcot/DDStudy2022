@@ -2,6 +2,11 @@
 {
     public class UserAvatarModel : UserModel
     {
+        public UserAvatarModel() : base()
+        {
+            AvatarLink = null;
+        }
+
         public string? AvatarLink { get; set; }
         //public UserAvatarModel(UserModel model, Func<UserModel, string?>? linkGenerator)
         //{

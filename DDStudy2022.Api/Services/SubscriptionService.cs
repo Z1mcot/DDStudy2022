@@ -24,13 +24,13 @@ namespace DDStudy2022.Api.Services
         public async Task SubscribeToUser(MakeSubscribtionRequest request)
         {
             var author = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AuthorId);
-            if (author == null)
+            if (author == null || !author.IsActive)
                 throw new UserNotFoundException();
 
             var dbSub = _mapper.Map<UserSubscription>(request);
             if (!author.IsPrivate)
                 dbSub.IsConfirmed = true;
-
+ 
             await _context.Subscriptions.AddAsync(dbSub);
             await _context.SaveChangesAsync();
         }
@@ -71,7 +71,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.AuthorId == authorId && s.IsConfirmed)
-                .Select(s => _mapper.Map<UserAvatarModel>(s.Subscriber))
+                .Select(s => s.Subscriber.IsActive ? _mapper.Map<UserAvatarModel>(s.Subscriber) : new UserAvatarModel())
                 .ToListAsync();
         }
 
@@ -81,7 +81,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Author).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.SubscriberId == userId && s.IsConfirmed)
-                .Select(s => _mapper.Map<UserAvatarModel>(s.Author))
+                .Select(s => s.Author.IsActive ? _mapper.Map<UserAvatarModel>(s.Author) : new UserAvatarModel())
                 .ToListAsync();
         }
     }

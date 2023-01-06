@@ -37,6 +37,9 @@ namespace DDStudy2022.Api.Mapper
                 .ForMember(dest => dest.isPrivate, map => map.MapFrom(src => src.IsPrivate ? 1 : 0))
                 .AfterMap<UserAvatarMapperAction>();
 
+            CreateMap<PasswordChangeRequest, PasswordChangeModel>();
+            CreateMap<ModifyUserInfoRequest, ModifyUserInfoModel>();
+
             // Сессии
             CreateMap<UserSession, SessionModel>();
 
