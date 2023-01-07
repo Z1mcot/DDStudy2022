@@ -7,6 +7,7 @@ using DDStudy2022.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 
 namespace DDStudy2022.Api.Controllers
 {
@@ -18,13 +19,18 @@ namespace DDStudy2022.Api.Controllers
     {
         private readonly SubscriptionService _subscriptionService;
 
-        public SubscriptionController(SubscriptionService subscriptionService)
+        public SubscriptionController(SubscriptionService subscriptionService, LinkGeneratorService linkGenerator)
         {
             _subscriptionService = subscriptionService;
+
+
+            linkGenerator.LinkAvatarGenerator = x => Url.ControllerAction<AttachmentController>(
+                    nameof(AttachmentController.GetUserAvatar),
+                    new { userId = x.Id });
         }
 
         [HttpPost]
-        public async Task SubscribeToUser(MakeSubscribtionRequest request)
+        public async Task SubscribeToUser(SubscribtionRequest request)
         {
             if (!request.SubscriberId.HasValue)
             {
@@ -50,19 +56,19 @@ namespace DDStudy2022.Api.Controllers
             return await _subscriptionService.GetSubscriptions(userId);
         }
 
-        [HttpPost]
-        public async Task UnsubscribeFromUser(UnsubscribeRequest request)
-        {
-            if (!request.SubscriberId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
+        //[HttpPost]
+        //public async Task UnsubscribeFromUser( request)
+        //{
+        //    if (!request.SubscriberId.HasValue)
+        //    {
+        //        var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+        //        if (userId == default)
+        //            throw new IdClaimConversionException();
 
-                request.SubscriberId = userId;
-            }
-            await _subscriptionService.Unsubscribe(request);
-        }
+        //        request.SubscriberId = userId;
+        //    }
+        //    await _subscriptionService.Unsubscribe(request);
+        //}
 
         [HttpGet]
         public async Task<ICollection<UserAvatarModel>> GetSubRequests()

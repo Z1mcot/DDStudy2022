@@ -75,7 +75,7 @@ namespace DDStudy2022.Api.Mapper
             CreateMap<MetadataLinkModel, StoriesAttachment>();
 
             // Подписки
-            CreateMap<MakeSubscribtionRequest, UserSubscription>()
+            CreateMap<SubscribtionRequest, UserSubscription>()
                 .ForMember(dest => dest.SubscriptionDate, map => map.MapFrom(src => DateTimeOffset.UtcNow));
 
             // Лайки

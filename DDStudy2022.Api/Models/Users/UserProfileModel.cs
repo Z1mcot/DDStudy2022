@@ -2,21 +2,11 @@
 {
     public class UserProfileModel : UserAvatarModel
     {
-        public UserProfileModel() : base()
-        {
-            Email = "deleted";
-            BirthDate = default(DateTimeOffset);
-            SubscribersCount = 0;
-            SubscriptionsCount = 0;
-            PostsCount = 0;
-            isPrivate = 0;
-        }
-
-        public string Email { get; set; } = null!;
-        public DateTimeOffset BirthDate { get; set; }
-        public uint SubscriptionsCount { get; set; }
-        public uint SubscribersCount { get; set; }
-        public uint PostsCount { get; set; }
-        public uint isPrivate { get; set; }
+        public string Email { get; set; } = "deleted";
+        public DateTimeOffset BirthDate { get; set; } = default(DateTimeOffset);
+        public uint SubscriptionsCount { get; set; } = 0;
+        public uint SubscribersCount { get; set; } = 0;
+        public uint PostsCount { get; set; } = 0;
+        public uint isPrivate { get; set; } = 0;
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using DDStudy2022.Common.Exceptions;
 using System.Runtime.CompilerServices;
 using DDStudy2022.Common.Extensions;
+using Microsoft.AspNetCore.Routing;
 
 namespace DDStudy2022.Api.Services
 {
@@ -21,29 +22,38 @@ namespace DDStudy2022.Api.Services
             _mapper = mapper;
         }
 
-        public async Task SubscribeToUser(MakeSubscribtionRequest request)
-        {
-            var author = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AuthorId);
-            if (author == null || !author.IsActive)
-                throw new UserNotFoundException();
-
-            var dbSub = _mapper.Map<UserSubscription>(request);
-            if (!author.IsPrivate)
-                dbSub.IsConfirmed = true;
- 
-            await _context.Subscriptions.AddAsync(dbSub);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task Unsubscribe(UnsubscribeRequest request)
+        public async Task SubscribeToUser(SubscribtionRequest request)
         {
             var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
-            if (sub == null)
-                throw new SubscriptionNotFoundException();
+            if (sub != null)
+            {
+                _context.Remove(sub);
+            }
+            else
+            {
+                var author = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.AuthorId);
+                if (author == null || !author.IsActive)
+                    throw new UserNotFoundException();
 
-            _context.Remove(sub);
+                var dbSub = _mapper.Map<UserSubscription>(request);
+                if (!author.IsPrivate)
+                    dbSub.IsConfirmed = true;
+
+                await _context.Subscriptions.AddAsync(dbSub);
+            }
+
             await _context.SaveChangesAsync();
         }
+
+        //public async Task Unsubscribe(UnsubscribeRequest request)
+        //{
+        //    var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
+        //    if (sub == null)
+        //        throw new SubscriptionNotFoundException();
+
+        //    _context.Remove(sub);
+        //    await _context.SaveChangesAsync();
+        //}
 
         public async Task ConfirmSubscriber(Guid authorId, Guid subscriberId)
         {
@@ -69,6 +79,7 @@ namespace DDStudy2022.Api.Services
         {
             return await _context.Subscriptions
                 .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
+                .Include(s => s.Author).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.AuthorId == authorId && s.IsConfirmed)
                 .Select(s => s.Subscriber.IsActive ? _mapper.Map<UserAvatarModel>(s.Subscriber) : new UserAvatarModel())
@@ -79,6 +90,7 @@ namespace DDStudy2022.Api.Services
         {
             return await _context.Subscriptions
                 .Include(s => s.Author).ThenInclude(u => u.Avatar)
+                .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
                 .Where(s => s.SubscriberId == userId && s.IsConfirmed)
                 .Select(s => s.Author.IsActive ? _mapper.Map<UserAvatarModel>(s.Author) : new UserAvatarModel())

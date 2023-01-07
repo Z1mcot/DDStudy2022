@@ -2,16 +2,9 @@
 {
     public class UserModel
     {
-        public UserModel()
-        {
-            Id = default;
-            NameTag = "@deadAcc";
-            Name = "Deleted";
-        }
-
-        public Guid Id { get; set; }
-        public string NameTag { get; set; } = null!;
-        public string Name { get; set; } = null!;
+        public Guid Id { get; set; } = default;
+        public string NameTag { get; set; } = "@deadAcc";
+        public string Name { get; set; } = "Deleted";
 
     }
 }
