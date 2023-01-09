@@ -71,7 +71,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
                 .AsNoTracking()
                 .Where(c => c.PostId == postId)
-                .OrderByDescending(c => c.PublishDate).Skip(skip).Take(take)
+                .OrderBy(c => c.PublishDate).Skip(skip).Take(take)
                 .ToListAsync();
 
             var comments = new List<CommentModel>();

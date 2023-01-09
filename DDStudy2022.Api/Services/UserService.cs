@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Models.Attachments;
+using DDStudy2022.Api.Models.Notifications;
 using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Users;
 using DDStudy2022.Common;
@@ -102,7 +103,7 @@ namespace DDStudy2022.Api.Services
             .Where(u => u.IsActive)
             .Select(x => _mapper.Map<UserAvatarModel>(x)).ToListAsync();
 
-        public async Task<UserProfileModel> GetUserModel(Guid userId)
+        public async Task<UserProfileModel> GetUserModel(Guid userId, Guid? requesterId = null)
         {
             var user = await _context.Users.Include(u => u.Avatar)
                                            .Include(u => u.Subscribers)
@@ -111,8 +112,10 @@ namespace DDStudy2022.Api.Services
                                            .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 throw new UserNotFoundException();
-
-            return _mapper.Map<UserProfileModel>(user);
+            var res = _mapper.Map<User, UserProfileModel>(user, 
+                opts: opts => opts.AfterMap((src, dest) => dest.isFollowed = src.Subscribers.Any(s => s.SubscriberId == requesterId) ? 1 : 0)
+                );
+            return res;
         }
 
         public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
@@ -150,7 +153,63 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        private async Task<User> GetUserById(Guid userId)
+        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag, int skip, int take)
+        {
+            return await _context.Users.Include(u => u.Avatar)
+                                       .AsNoTracking()
+                                       .Where(u => u.NameTag.ToLower().StartsWith(nameTag.ToLower()) && u.IsActive)
+                                       .Select(u => _mapper.Map<UserAvatarModel>(u))
+                                       .Skip(skip).Take(take)
+                                       .ToListAsync();
+        }
+
+        public async Task SetPushToken(Guid userId, string? token = null)
+        {
+            var user = await GetUserById(userId);
+            user.PushToken = token;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<string?> GetPushToken(Guid userId)
+        {
+            var user = await GetUserById(userId);
+            return user.PushToken;
+        }
+
+        public async Task AddNotification(string notifyType, Guid senderId, Guid recieverId, string? description, Guid? postId = null)
+        {
+            var createNotifyModel = new CreateNotificationModel
+            {
+                SenderId = senderId,
+                RecieverId = recieverId,
+                Description = description ?? "shouldnt show this",
+                NotificationType = NotificationTypeEnum.subscribeNotification
+            };
+            if (notifyType == "post")
+            {
+                createNotifyModel.NotificationType = NotificationTypeEnum.postNotification;
+                createNotifyModel.PostId = (Guid)postId!;
+            }
+
+            var dbNotify = _mapper.Map<Notification>(createNotifyModel);
+            await _context.AddAsync(dbNotify);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<NotificationModel>> GetNotifications(Guid userId, int skip, int take)
+        {
+            return await _context.Notifications
+                                 .Include(n => n.Sender).ThenInclude(u => u.Avatar)
+                                 .AsNoTracking()
+                                 .Where(n => n.RecieverId == userId)
+                                 .OrderByDescending(nm => nm.NotifyDate)
+                                 .Skip(skip).Take(take)
+                                 .Select(n => _mapper.Map<NotificationModel>(n))
+                                 .ToListAsync();
+        }
+
+
+        public async Task<User> GetUserById(Guid userId)
         {
             var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
             if (userEntity == null)
@@ -167,14 +226,6 @@ namespace DDStudy2022.Api.Services
             return session;
         }
 
-        public async Task<List<UserAvatarModel>> SearchUsers(string nameTag, int skip, int take)
-        {
-            return await _context.Users.Include(u => u.Avatar)
-                                       .AsNoTracking()
-                                       .Where(u => u.NameTag.ToLower().StartsWith(nameTag.ToLower()) && u.IsActive)
-                                       .Select(u => _mapper.Map<UserAvatarModel>(u))
-                                       .Skip(skip).Take(take)
-                                       .ToListAsync();
-        }
+
     }
 }

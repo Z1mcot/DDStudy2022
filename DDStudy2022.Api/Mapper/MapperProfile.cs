@@ -4,6 +4,7 @@ using DDStudy2022.Api.Models;
 using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.Api.Models.Comments;
 using DDStudy2022.Api.Models.Likes;
+using DDStudy2022.Api.Models.Notifications;
 using DDStudy2022.Api.Models.Posts;
 using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Stories;
@@ -92,6 +93,11 @@ namespace DDStudy2022.Api.Mapper
                 .ForMember(dest => dest.PublishDate, map => map.MapFrom(src => DateTimeOffset.UtcNow))
                 .ForMember(dest => dest.ExpirationDate, map => map.MapFrom(src => DateTimeOffset.UtcNow.AddDays(1)));
             CreateMap<Stories, StoriesModel>();
+
+            //Нотифаи
+            CreateMap<CreateNotificationModel, Notification>()
+                .ForMember(dest => dest.NotifyDate, map => map.MapFrom(src => DateTimeOffset.UtcNow));
+            CreateMap<Notification, NotificationModel>();
         }
     }
 }

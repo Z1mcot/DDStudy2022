@@ -24,36 +24,28 @@ namespace DDStudy2022.Api.Services
 
         public async Task SubscribeToUser(SubscribtionRequest request)
         {
-            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
-            if (sub != null)
-            {
-                _context.Remove(sub);
-            }
-            else
-            {
-                var author = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.AuthorId);
-                if (author == null || !author.IsActive)
-                    throw new UserNotFoundException();
+            var author = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.AuthorId);
+            if (author == null || !author.IsActive)
+                throw new UserNotFoundException();
 
-                var dbSub = _mapper.Map<UserSubscription>(request);
-                if (!author.IsPrivate)
-                    dbSub.IsConfirmed = true;
+            var dbSub = _mapper.Map<UserSubscription>(request);
+            if (!author.IsPrivate)
+                dbSub.IsConfirmed = true;
 
-                await _context.Subscriptions.AddAsync(dbSub);
-            }
+            await _context.Subscriptions.AddAsync(dbSub);
 
             await _context.SaveChangesAsync();
         }
 
-        //public async Task Unsubscribe(UnsubscribeRequest request)
-        //{
-        //    var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
-        //    if (sub == null)
-        //        throw new SubscriptionNotFoundException();
+        public async Task UnsubscribeFromUser(UnsubscribeRequest request)
+        {
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
+            if (sub == null)
+                throw new SubscriptionNotFoundException();
 
-        //    _context.Remove(sub);
-        //    await _context.SaveChangesAsync();
-        //}
+            _context.Remove(sub);
+            await _context.SaveChangesAsync();
+        }
 
         public async Task ConfirmSubscriber(Guid authorId, Guid subscriberId)
         {

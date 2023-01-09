@@ -3,6 +3,7 @@ using System;
 using DDStudy2022.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DDStudy2022.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20230108195136_pushToken")]
+    partial class pushToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,39 +77,6 @@ namespace DDStudy2022.Api.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CommentLike", (string)null);
-                });
-
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("NotifyDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("RecieverId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.HasIndex("RecieverId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
@@ -385,31 +355,6 @@ namespace DDStudy2022.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DDStudy2022.DAL.Entities.Notification", b =>
-                {
-                    b.HasOne("DDStudy2022.DAL.Entities.Post", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId");
-
-                    b.HasOne("DDStudy2022.DAL.Entities.User", "Reciever")
-                        .WithMany("Notifications")
-                        .HasForeignKey("RecieverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DDStudy2022.DAL.Entities.User", "Sender")
-                        .WithMany("Notificatied")
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-
-                    b.Navigation("Reciever");
-
-                    b.Navigation("Sender");
-                });
-
             modelBuilder.Entity("DDStudy2022.DAL.Entities.Post", b =>
                 {
                     b.HasOne("DDStudy2022.DAL.Entities.User", "Author")
@@ -576,10 +521,6 @@ namespace DDStudy2022.Api.Migrations
                     b.Navigation("LikedComments");
 
                     b.Navigation("LikedPosts");
-
-                    b.Navigation("Notificatied");
-
-                    b.Navigation("Notifications");
 
                     b.Navigation("Posts");
 

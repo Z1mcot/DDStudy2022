@@ -1,4 +1,5 @@
-﻿using DDStudy2022.Api.Models.Sessions;
+﻿using DDStudy2022.Api.Models.Notifications;
+using DDStudy2022.Api.Models.Sessions;
 using DDStudy2022.Api.Models.Users;
 using DDStudy2022.Api.Services;
 using DDStudy2022.Common.Consts;
@@ -42,8 +43,15 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<UserProfileModel> GetUserProfile(Guid userId) 
-            => await _userService.GetUserModel(userId);
+        public async Task<UserProfileModel> GetUserProfile(Guid userId)
+        {
+            var requesterId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (requesterId == default)
+                throw new IdClaimConversionException();
+
+
+            return await _userService.GetUserModel(userId, requesterId);
+        }
 
         [HttpGet]
         public async Task<List<UserAvatarModel>> SearchUsers(string nameTag, int skip = 0, int take = 10) => await _userService.SearchUsers(nameTag, skip, take);
@@ -111,5 +119,15 @@ namespace DDStudy2022.Api.Controllers
         [HttpPost]
         public async Task DeactivateSession(SessionDeactivationRequest request)
             => await _userService.DeactivateSession(request.RefreshToken);
+
+        [HttpGet]
+        public async Task<List<NotificationModel>> GetNotifications(int skip = 0, int take = 10)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new IdClaimConversionException();
+
+            return await _userService.GetNotifications(userId, skip, take);
+        }
     }
 }

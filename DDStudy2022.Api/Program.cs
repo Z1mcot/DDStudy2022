@@ -17,11 +17,18 @@ namespace DDStudy2022.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Регистрация сервисов
+            // Проброс конфигов
             var authSection = builder.Configuration.GetSection(AuthConfig.ConfigPosition);
             var authConfig = authSection.Get<AuthConfig>();
 
+            var pushSection = builder.Configuration.GetSection(AuthConfig.ConfigPosition);
+
+
+            // Регистрация сервисов
+
             builder.Services.Configure<AuthConfig>(authSection);
+
+            builder.Services.Configure<PushConfig>(builder.Configuration.GetSection(PushConfig.Position));
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -88,6 +95,8 @@ namespace DDStudy2022.Api
             builder.Services.AddScoped<SubscriptionService>();
 
             builder.Services.AddScoped<StoriesService>();
+
+            builder.Services.AddScoped<GooglePushService>();
 
             //builder.Services.AddSingleton<DdosGuard>();
 

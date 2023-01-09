@@ -1,4 +1,5 @@
-﻿using DDStudy2022.Api.Models.Subscriptions;
+﻿using DDStudy2022.Api.Models.Pushes;
+using DDStudy2022.Api.Models.Subscriptions;
 using DDStudy2022.Api.Models.Users;
 using DDStudy2022.Api.Services;
 using DDStudy2022.Common.Consts;
@@ -23,7 +24,6 @@ namespace DDStudy2022.Api.Controllers
         {
             _subscriptionService = subscriptionService;
 
-
             linkGenerator.LinkAvatarGenerator = x => Url.ControllerAction<AttachmentController>(
                     nameof(AttachmentController.GetUserAvatar),
                     new { userId = x.Id });
@@ -42,6 +42,21 @@ namespace DDStudy2022.Api.Controllers
             }
 
             await _subscriptionService.SubscribeToUser(request);
+        }
+
+        [HttpPost]
+        public async Task UnsubscribeFromUser(UnsubscribeRequest request)
+        {
+            if (!request.SubscriberId.HasValue)
+            {
+                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+                if (userId == default)
+                    throw new IdClaimConversionException();
+
+                request.SubscriberId = userId;
+            }
+
+            await _subscriptionService.UnsubscribeFromUser(request);
         }
 
         [HttpGet]

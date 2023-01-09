@@ -15,6 +15,7 @@ namespace DDStudy2022.DAL.Entities
         public string PasswordHash { get; set; } = "not entered";
         public DateTimeOffset BirthDate { get; set; }
         public Avatar? Avatar { get; set; } 
+
         public virtual ICollection<UserSession>? UserSessions { get; set; }
         public virtual ICollection<Post>? Posts { get; set; }
         public virtual ICollection<Stories>? Stories { get; set; }
@@ -22,7 +23,12 @@ namespace DDStudy2022.DAL.Entities
         public virtual ICollection<UserSubscription>? Subscribers { get; set; } 
         public virtual ICollection<PostLike>? LikedPosts { get; set; }
         public virtual ICollection<CommentLike>? LikedComments { get; set; }
+        public virtual ICollection<Notification>? Notifications { get; set; }
+        public virtual ICollection<Notification>? Notificatied { get; set; }
+
         public bool IsActive { get; set; }
         public bool IsPrivate { get; set; }
+        
+        public string? PushToken { get; set; }
     }
 }

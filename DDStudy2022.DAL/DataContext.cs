@@ -71,6 +71,16 @@ namespace DDStudy2022.DAL
             modelBuilder.Entity<StoriesAttachment>()
                 .ToTable(nameof(StoriesAttachment));
 
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Sender)
+                .WithMany(u => u.Notificatied)
+                .HasForeignKey(n => n.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Reciever)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(us => us.RecieverId);
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             => optionsBuilder.UseNpgsql(b => b.MigrationsAssembly("DDStudy2022.Api"));
@@ -88,5 +98,6 @@ namespace DDStudy2022.DAL
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>(); 
         public DbSet<Stories> Stories => Set<Stories>();
         public DbSet<StoriesAttachment> StoriesContent => Set<StoriesAttachment>();
+        public DbSet<Notification> Notifications => Set<Notification>();
     }
 }
