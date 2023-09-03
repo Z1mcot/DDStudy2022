@@ -109,26 +109,19 @@ namespace DDStudy2022.Api.Services
                                            .Include(u => u.Subscribers)
                                            .Include(u => u.Posts)
                                            .Include(u => u.Subscriptions)
-                                           .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new UserNotFoundException();
-            var res = _mapper.Map<User, UserProfileModel>(user, 
-                opts: opts => opts.AfterMap((src, dest) => dest.isFollowed = src.Subscribers.Any(s => s.SubscriberId == requesterId) ? 1 : 0)
-                );
-            return res;
+                                           .FirstOrDefaultAsync(u => u.Id == userId) 
+                       ?? throw new UserNotFoundException();
+                
+            return _mapper.Map<User, UserProfileModel>(user, 
+                opts: o => o.AfterMap((src, dest) => dest.IsFollowed = src.Subscribers?.Any(s => s.SubscriberId == requesterId) ?? false)
+                ); // TODO replace int with bool
         }
 
         public async Task<ICollection<SessionModel>> GetUserSessionModels(Guid userId)
             => _mapper.Map<List<SessionModel>>(await GetUserSessions(userId));
 
-        public async Task<ICollection<UserSession>> GetUserSessions(Guid userId)
-        {
-            var sessions = await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
-            if (sessions == null)
-                throw new SessionNotFoundException();
-
-            return sessions;
-        }
+        public async Task<ICollection<UserSession>> GetUserSessions(Guid userId) 
+            => await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
 
         public async Task DeactivateSession(Guid refreshToken)
         {
@@ -148,7 +141,7 @@ namespace DDStudy2022.Api.Services
         public async Task ChangeAccountPrivacySetting(Guid userId)
         {
             var user = await GetUserById(userId);
-            user.IsPrivate ^= true;
+            user.IsPrivate = !user.IsPrivate;
 
             await _context.SaveChangesAsync();
         }
@@ -176,26 +169,6 @@ namespace DDStudy2022.Api.Services
             return user.PushToken;
         }
 
-        public async Task AddNotification(string notifyType, Guid senderId, Guid recieverId, string? description, Guid? postId = null)
-        {
-            var createNotifyModel = new CreateNotificationModel
-            {
-                SenderId = senderId,
-                RecieverId = recieverId,
-                Description = description ?? "shouldnt show this",
-                NotificationType = NotificationTypeEnum.subscribeNotification
-            };
-            if (notifyType == "post")
-            {
-                createNotifyModel.NotificationType = NotificationTypeEnum.postNotification;
-                createNotifyModel.PostId = (Guid)postId!;
-            }
-
-            var dbNotify = _mapper.Map<Notification>(createNotifyModel);
-            await _context.AddAsync(dbNotify);
-            await _context.SaveChangesAsync();
-        }
-
         public async Task<List<NotificationModel>> GetNotifications(Guid userId, int skip, int take)
         {
             return await _context.Notifications
@@ -209,23 +182,12 @@ namespace DDStudy2022.Api.Services
         }
 
 
-        public async Task<User> GetUserById(Guid userId)
-        {
-            var userEntity = await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
-            if (userEntity == null)
-                throw new UserNotFoundException();
+        public async Task<User> GetUserById(Guid userId) 
+            => await _context.Users.Include(u => u.Avatar).FirstOrDefaultAsync(u => u.Id == userId && u.IsActive)
+                ?? throw new UserNotFoundException();
 
-            return userEntity;
-        }
-
-        private async Task<UserSession> GetSessionByRefreshToken(Guid id)
-        {
-            var session = await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id);
-            if (session == null)
-                throw new SessionNotFoundException();
-            return session;
-        }
-
-
+        private async Task<UserSession> GetSessionByRefreshToken(Guid id) 
+            => await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id)
+                ?? throw new SessionNotFoundException();
     }
 }

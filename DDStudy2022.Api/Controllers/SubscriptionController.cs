@@ -32,14 +32,16 @@ namespace DDStudy2022.Api.Controllers
         [HttpPost]
         public async Task SubscribeToUser(SubscribtionRequest request)
         {
-            if (!request.SubscriberId.HasValue)
+            if (request.SubscriberId.HasValue)
             {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
-
-                request.SubscriberId = userId;
+                throw new Exception();
             }
+
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new IdClaimConversionException();
+
+            request.SubscriberId = userId;
 
             await _subscriptionService.SubscribeToUser(request);
         }

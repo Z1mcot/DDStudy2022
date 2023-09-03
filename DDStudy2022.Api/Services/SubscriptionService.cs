@@ -39,9 +39,8 @@ namespace DDStudy2022.Api.Services
 
         public async Task UnsubscribeFromUser(UnsubscribeRequest request)
         {
-            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId);
-            if (sub == null)
-                throw new SubscriptionNotFoundException();
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId)
+                ?? throw new SubscriptionNotFoundException();
 
             _context.Remove(sub);
             await _context.SaveChangesAsync();
@@ -49,9 +48,8 @@ namespace DDStudy2022.Api.Services
 
         public async Task ConfirmSubscriber(Guid authorId, Guid subscriberId)
         {
-            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == authorId && s.SubscriberId == subscriberId);
-            if (sub == null)
-                throw new SubscriptionRequestNotFoundException();
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == authorId && s.SubscriberId == subscriberId)
+                ?? throw new SubscriptionRequestNotFoundException();
 
             sub.IsConfirmed = true;
             await _context.SaveChangesAsync();

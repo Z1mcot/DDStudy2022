@@ -1,5 +1,7 @@
 ﻿using DDStudy2022.Api.Configs;
+using DDStudy2022.Api.Migrations;
 using DDStudy2022.Api.Models.Pushes;
+using DDStudy2022.Common.Enums;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using PushSharp.Common;
@@ -20,21 +22,16 @@ namespace DDStudy2022.Api.Services
             _messages = new List<string>();
             if (config.Value.Google == null)
             {
-                throw new ArgumentNullException("Google configuration not found");
+                throw new ArgumentNullException(nameof(config.Value.Google), "Google configuration not found");
             }
             _config = config.Value.Google;
         }
 
-        public List<string> SendNotification(string pushToken, PushModel model)
+        public List<string> SendNotification(ICollection<string> pushTokens, PushModel model)
         {
             _messages.Clear();
 
-            var config = new GcmConfiguration(_config.ServerKey);
-            config.GcmUrl = _config.GcmUrl;
-
-            var gcmBroker = new GcmServiceBroker(config);
-            gcmBroker.OnNotificationFailed += GcmBroker_OnNotificationFailed;
-            gcmBroker.OnNotificationSucceeded += GcmBroker_OnNotificationSucceeded;
+            var gcmBroker = InitializeBroker();
 
             gcmBroker.Start();
 
@@ -42,7 +39,7 @@ namespace DDStudy2022.Api.Services
 
             var notification = new GcmNotification
             {
-                RegistrationIds = new List<string> { pushToken },
+                RegistrationIds = pushTokens.ToList(),
                 Data = jData,
                 Notification = CreateMessage(model.Alert),
                 ContentAvailable = jData["data"] != null,
@@ -55,7 +52,24 @@ namespace DDStudy2022.Api.Services
             return _messages;
         }
 
-        private JObject CreateMessage(PushModel.AlertModel alert)
+        public List<string> SendNotification(string pushToken, PushModel model) 
+            => SendNotification(new List<string> { pushToken }, model);
+
+        private GcmServiceBroker InitializeBroker()
+        {
+            var config = new GcmConfiguration(_config.ServerKey)
+            {
+                GcmUrl = _config.GcmUrl
+            };
+
+            var gcmBroker = new GcmServiceBroker(config);
+            gcmBroker.OnNotificationFailed += GcmBroker_OnNotificationFailed;
+            gcmBroker.OnNotificationSucceeded += GcmBroker_OnNotificationSucceeded;
+
+            return gcmBroker;
+        }
+
+        private static JObject CreateMessage(PushModel.AlertModel alert)
         {
             var jNotification = new JObject();
             if (!string.IsNullOrWhiteSpace(alert.Title))
@@ -76,7 +90,7 @@ namespace DDStudy2022.Api.Services
             return jNotification;
         }
 
-        private JObject CreateDataMessage(Dictionary<string, object>? customData)
+        private static JObject CreateDataMessage(Dictionary<string, object>? customData)
         {
             var jData = new JObject();
             var jCustomData = new JObject();

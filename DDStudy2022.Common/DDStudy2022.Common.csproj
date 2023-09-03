@@ -10,8 +10,4 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DDStudy2022.DAL\DDStudy2022.DAL.csproj" />
-  </ItemGroup>
-
 </Project>

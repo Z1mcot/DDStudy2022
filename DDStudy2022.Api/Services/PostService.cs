@@ -14,11 +14,13 @@ namespace DDStudy2022.Api.Services
     {
         private readonly IMapper _mapper;
         private readonly DataContext _context;
+        private readonly NotifyService _notifyService;
 
-        public PostService(IMapper mapper, DataContext context)
+        public PostService(IMapper mapper, DataContext context, NotifyService notifyService)
         {
             _mapper = mapper;
             _context = context;
+            _notifyService = notifyService;
         }
 
         public async Task CreatePost(CreatePostRequest request)
@@ -48,13 +50,15 @@ namespace DDStudy2022.Api.Services
 
             await _context.Posts.AddAsync(dbModel);
             await _context.SaveChangesAsync();
+
+            await _notifyService.SendNewPostNotification(dbModel);
         }
 
         public async Task ModifyPost(Guid postId, ModifyPostRequest request)
         {
-            var post = await _context.Posts.Include(x => x.Content).FirstOrDefaultAsync(x => x.Id == postId && x.IsShown);
-            if (post == null)
-                throw new PostNotFoundException();
+            var post = await _context.Posts.Include(x => x.Content).FirstOrDefaultAsync(x => x.Id == postId && x.IsShown) 
+                ?? throw new PostNotFoundException();
+            
             if (post.AuthorId != request.AuthorId)
                 throw new ModifyPostException();
 
@@ -91,9 +95,9 @@ namespace DDStudy2022.Api.Services
 
         public async Task UnlistPost(Guid userId, Guid postId)
         {
-            var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId && x.IsShown);
-            if (post == null)
-                throw new PostNotFoundException();
+            var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == postId && x.IsShown) 
+                ?? throw new PostNotFoundException();
+
             if (post.AuthorId != userId)
                 throw new ModifyPostException();
 
@@ -138,10 +142,9 @@ namespace DDStudy2022.Api.Services
         {
             var res = await _context.PostContent
                 .Include(x => x.Post)
-                .FirstOrDefaultAsync(x => x.Id == postContentId && x.Post.IsShown);
+                .FirstOrDefaultAsync(x => x.Id == postContentId && x.Post.IsShown)
+                ?? throw new AttachmentNotFoundException();
             
-            if (res == null)
-                throw new AttachmentNotFoundException();
             if (!await IsAuthorizedToSeePosts(userId, res.AuthorId))
                 throw new PrivateAccountNonsubException();
 

@@ -1,5 +1,4 @@
-﻿using DDStudy2022.Api.Models.Users;
-using DDStudy2022.DAL.Entities;
+﻿using DDStudy2022.Common.Enums;
 
 namespace DDStudy2022.Api.Models.Notifications
 {
@@ -9,9 +8,8 @@ namespace DDStudy2022.Api.Models.Notifications
         public Guid SenderId { get; set; }
         public Guid RecieverId { get; set; }
         public string Description { get; set; } = null!;
-        public Guid? PostId { get; set; }
+        public Guid? NotificationObjectId { get; set; }
 
         public NotificationTypeEnum NotificationType { get; set; }
-
     }
 }

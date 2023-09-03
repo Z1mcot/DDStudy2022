@@ -44,26 +44,20 @@ namespace DDStudy2022.Api.Controllers
             await _userService.SetPushToken(userId);
         }
 
+        [Obsolete("Will be removed before merging into master")]
         [HttpPost]
         public async Task<List<string>> SendPush(string notifyType, Guid? postId, SendPushModel model)
         {
             var res = new List<string>();
 
-            var senderId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            var tempRecieverId = model.UserId;
-            if (tempRecieverId == default || senderId == default)
-                throw new IdClaimConversionException();
-
-            var recieverId = (Guid)tempRecieverId!;
+            var recieverId = model.UserId 
+                ?? throw new IdClaimConversionException();
 
             var token = await _userService.GetPushToken(recieverId);
             if (token != default)
             {
                 res = _googlePushService.SendNotification(token, model.Push);
             }
-
-            // По тупому, но как есть
-            await _userService.AddNotification(notifyType, senderId, recieverId, model.Push.Alert.Body, postId);
 
             return res;
         }
