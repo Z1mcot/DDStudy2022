@@ -1,5 +1,6 @@
 ﻿namespace DDStudy2022.Api.Models.Users
 {
+    [Obsolete("Use DDStudy2022.Api.Models.Users.ModifyUserInfoRequest instead")]
     public class ModifyUserInfoModel
     {
         public Guid Id { get; set; }

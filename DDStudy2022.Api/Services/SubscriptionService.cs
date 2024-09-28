@@ -1,13 +1,10 @@
 ﻿using AutoMapper;
-using DDStudy2022.Api.Models.Subscriptions;
 using DDStudy2022.Api.Models.Users;
+using DDStudy2022.Common.Enums;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using DDStudy2022.Common.Exceptions;
-using System.Runtime.CompilerServices;
-using DDStudy2022.Common.Extensions;
-using Microsoft.AspNetCore.Routing;
 
 namespace DDStudy2022.Api.Services
 {
@@ -22,24 +19,28 @@ namespace DDStudy2022.Api.Services
             _mapper = mapper;
         }
 
-        public async Task SubscribeToUser(SubscribtionRequest request)
+        public async Task SubscribeToUser(Guid userId, Guid subscribeToUserId)
         {
-            var author = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == request.AuthorId);
-            if (author == null || !author.IsActive)
+            var author = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == subscribeToUserId);
+            if (author is not { IsActive: true })
                 throw new UserNotFoundException();
+            
+            var subscriptionModel = new UserSubscription
+            {
+                AuthorId = author.Id,
+                SubscriberId = userId,
+                Status = author.IsPrivate ? SubscriptionStatus.Pending : SubscriptionStatus.Active,
+                SubscriptionDate = DateTime.UtcNow,
+            };
 
-            var dbSub = _mapper.Map<UserSubscription>(request);
-            if (!author.IsPrivate)
-                dbSub.IsConfirmed = true;
-
-            await _context.Subscriptions.AddAsync(dbSub);
+            await _context.Subscriptions.AddAsync(subscriptionModel);
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnsubscribeFromUser(UnsubscribeRequest request)
+        public async Task UnsubscribeFromUser(Guid userId, Guid unsubscribeFromUserId)
         {
-            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == request.AuthorId && s.SubscriberId == request.SubscriberId)
+            var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == unsubscribeFromUserId && s.SubscriberId == userId)
                 ?? throw new SubscriptionNotFoundException();
 
             _context.Remove(sub);
@@ -51,39 +52,31 @@ namespace DDStudy2022.Api.Services
             var sub = await _context.Subscriptions.FirstOrDefaultAsync(s => s.AuthorId == authorId && s.SubscriberId == subscriberId)
                 ?? throw new SubscriptionRequestNotFoundException();
 
-            sub.IsConfirmed = true;
+            sub.Status = SubscriptionStatus.Active;
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<UserAvatarModel>> GetSubscriptionRequests(Guid authorId)
+        public async Task<List<UserAvatarModel>> GetSubscribers
+            (Guid authorId, SubscriptionStatus status, int skip, int take)
         {
             return await _context.Subscriptions
                 .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
-                .Where(s => s.AuthorId == authorId && !s.IsConfirmed)
-                .Select(s => _mapper.Map<UserAvatarModel>(s.Subscriber))
-                .ToListAsync();
-        }
-
-        public async Task<List<UserAvatarModel>> GetSubscribers(Guid authorId)
-        {
-            return await _context.Subscriptions
-                .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
-                .Include(s => s.Author).ThenInclude(u => u.Avatar)
-                .AsNoTracking()
-                .Where(s => s.AuthorId == authorId && s.IsConfirmed)
+                .Where(s => s.AuthorId == authorId && s.Status == status)
                 .Select(s => s.Subscriber.IsActive ? _mapper.Map<UserAvatarModel>(s.Subscriber) : new UserAvatarModel())
+                .Skip(skip).Take(take)
                 .ToListAsync();
         }
 
-        public async Task<List<UserAvatarModel>> GetSubscriptions(Guid userId)
+        public async Task<List<UserAvatarModel>> GetSubscriptions
+            (Guid userId, SubscriptionStatus status, int skip, int take)
         {
             return await _context.Subscriptions
                 .Include(s => s.Author).ThenInclude(u => u.Avatar)
-                .Include(s => s.Subscriber).ThenInclude(u => u.Avatar)
                 .AsNoTracking()
-                .Where(s => s.SubscriberId == userId && s.IsConfirmed)
+                .Where(s => s.SubscriberId == userId && s.Status == status)
                 .Select(s => s.Author.IsActive ? _mapper.Map<UserAvatarModel>(s.Author) : new UserAvatarModel())
+                .Skip(skip).Take(take)
                 .ToListAsync();
         }
     }

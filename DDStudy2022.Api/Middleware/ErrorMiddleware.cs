@@ -23,12 +23,12 @@ namespace DDStudy2022.Api.Middleware
                 await context.Response.WriteAsJsonAsync(ex.Message);
                 //await context.Response.CompleteAsync()
             }
-            catch (ForbiddenActionException ex)
+            catch (UnauthorizedActionException ex)
             {
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsJsonAsync(ex.Message);
             }
-            catch (PrivateAccountException ex)
+            catch (NoPermissionException ex)
             {
                 context.Response.StatusCode = 403;
                 await context.Response.WriteAsJsonAsync(ex.Message);

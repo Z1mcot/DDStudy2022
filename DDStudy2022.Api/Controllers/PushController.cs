@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DDStudy2022.Api.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/notifications")]
     [ApiController]
     [Authorize]
     public class PushController : ControllerBase
@@ -25,6 +25,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
+        [Route("subscribe")]
         public async Task Subscribe(PushTokenModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -35,6 +36,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
+        [Route("unsubscribe")]
         public async Task Unsubscribe()
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -42,6 +44,16 @@ namespace DDStudy2022.Api.Controllers
                 throw new IdClaimConversionException();
 
             await _userService.SetPushToken(userId);
+        }
+        
+        [HttpGet]
+        public async Task<List<NotificationModel>> GetNotifications(int skip = 0, int take = 10)
+        {
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new IdClaimConversionException();
+
+            return await _userService.GetNotifications(userId, skip, take);
         }
 
         [Obsolete("Will be removed before merging into master")]

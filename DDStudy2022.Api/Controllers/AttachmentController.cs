@@ -13,7 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DDStudy2022.Api.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    // [Route("api/[controller]/[action]")]
+    [Route("api/attachments")]
     [ApiController]
     [Authorize]
     [ApiExplorerSettings(GroupName = "Api")]
@@ -37,7 +38,7 @@ namespace DDStudy2022.Api.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        [Route("{postContentId}")]
+        [Route("post/{postContentId:guid}")]
         public async Task<FileStreamResult> GetPostContent(Guid postContentId, bool download = false)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -49,23 +50,24 @@ namespace DDStudy2022.Api.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        [Route("{storyContentId}")]
+        [Route("story/{storyContentId:guid}")]
         public async Task<FileStreamResult> GetStoryContent(Guid storyContentId, bool download = false)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            //if (userId == default)
-            //    throw new IdClaimConversionException();
+            // if (userId == default)
+            //     throw new IdClaimConversionException();
             
             return RenderAttachment(await _storiesService.GetStoryContent(userId, storyContentId), download);
         }
 
         [HttpGet]
         [AllowAnonymous]
-        [Route("{userId}")]
+        [Route("avatar/{userId:guid}")]
         public async Task<FileStreamResult> GetUserAvatar(Guid userId, bool download = false)
             => RenderAttachment(await _userService.GetUserAvatar(userId), download);
 
         [HttpGet]
+        [Route("avatar")]
         public async Task<FileStreamResult> GetCurrentUserAvatar(bool download = false)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -77,28 +79,25 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
+        [Route("avatar")]
         public async Task AddAvatarToUser(MetadataModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId != default)
-            {
-                var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
-                if (!tempFi.Exists)
-                    throw new TempFileNotFoundException();
-                else
-                {
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "Attachments", model.TempId.ToString());
-                    var destFi = new FileInfo(path);
-                    if (destFi.Directory != null && !destFi.Directory.Exists)
-                        destFi.Directory.Create();
-
-                    System.IO.File.Copy(tempFi.FullName, path, true);
-
-                    await _userService.AddAvatarToUser(userId, model, path);
-                }
-            }
-            else
                 throw new IdClaimConversionException();
+            
+            var tempFi = new FileInfo(Path.Combine(Path.GetTempPath(), model.TempId.ToString()));
+            if (!tempFi.Exists)
+                throw new TempFileNotFoundException();
+            
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "Attachments", model.TempId.ToString());
+            var destFi = new FileInfo(path);
+            if (destFi.Directory is { Exists: false })
+                destFi.Directory.Create();
+
+            System.IO.File.Copy(tempFi.FullName, path, true);
+
+            await _userService.AddAvatarToUser(userId, model, path);    
         }
 
 
@@ -106,10 +105,8 @@ namespace DDStudy2022.Api.Controllers
         {
             var fs = new FileStream(attach.FilePath, FileMode.Open);
             var ext = Path.GetExtension(attach.Name);
-            if (download)
-                return File(fs, attach.MimeType, $"{attach.Id}{ext}");
-            else
-                return File(fs, attach.MimeType);
+            return download ? File(fs, attach.MimeType, $"{attach.Id}{ext}") 
+                            : File(fs, attach.MimeType);
         }
     }
 }

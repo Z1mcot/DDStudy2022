@@ -26,7 +26,11 @@ namespace DDStudy2022.Api.Services
 
         private async Task<User> GetUserByCredentials(string login, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email.ToLower() == login.ToLower());
+            var user = await _context.Users.FirstOrDefaultAsync(
+                x => x.Email.ToLower() == login.ToLower()
+                     || x.NameTag.ToLower() == $"@{login}".ToLower()
+                );
+            
             if (user == null)
                 throw new UserNotFoundException();
 
@@ -36,7 +40,7 @@ namespace DDStudy2022.Api.Services
             return user;
         }
 
-        public TokenModel GenerateTokens(UserSession session)
+        private TokenModel GenerateTokens(UserSession session)
         {
             var dtNow = DateTime.Now;
             if (session.User == null)
@@ -48,12 +52,12 @@ namespace DDStudy2022.Api.Services
                     issuer: _config.Issuer,
                     audience: _config.Audience,
                     notBefore: dtNow,
-                    claims: new Claim[]
-                    {
+                    claims:
+                    [
                         new Claim(ClaimsIdentity.DefaultNameClaimType, session.User.Name),
                         new Claim(ClaimNames.SessionId, session.Id.ToString()),
-                        new Claim(ClaimNames.Id, session.User.Id.ToString()),
-                    },
+                        new Claim(ClaimNames.Id, session.User.Id.ToString())
+                    ],
                     expires: DateTime.Now.AddMinutes(_config.Lifetime),
                     signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
                 );
@@ -61,10 +65,10 @@ namespace DDStudy2022.Api.Services
 
             var refreshJwt = new JwtSecurityToken(
                     notBefore: dtNow,
-                    claims: new Claim[]
-                    {
-                        new Claim(ClaimNames.RefreshToken, session.RefreshToken.ToString()),
-                    },
+                    claims:
+                    [
+                        new Claim(ClaimNames.RefreshToken, session.RefreshToken.ToString())
+                    ],
                     expires: DateTime.Now.AddHours(_config.Lifetime),
                     signingCredentials: new SigningCredentials(_config.SymmetricSecurityKey, SecurityAlgorithms.HmacSha256)
                 );

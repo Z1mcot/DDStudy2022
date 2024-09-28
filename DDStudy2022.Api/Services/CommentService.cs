@@ -2,6 +2,7 @@
 using AutoMapper.Configuration.Annotations;
 using DDStudy2022.Api.Models.Comments;
 using DDStudy2022.Api.Models.Likes;
+using DDStudy2022.Common.Enums;
 using DDStudy2022.Common.Exceptions;
 using DDStudy2022.Common.Extensions;
 using DDStudy2022.DAL;
@@ -21,13 +22,13 @@ namespace DDStudy2022.Api.Services
             _mapper = mapper;
         }
 
-        public async Task AddComment(AddCommentModel model)
+        public async Task AddComment(Guid userId, Guid postId, AddCommentModel model)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == model.PostId);
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
                 throw new PostNotFoundException();
-            if (!await IsAuthorizedToSeeComments((Guid)model.AuthorId!, post.AuthorId))
-                throw new PrivateAccountNonsubException();
+            if (!await IsAuthorizedToSeeComments(userId, post.AuthorId))
+                throw new PrivateAccountException();
 
             var dbModel = _mapper.Map<PostComment>(model);
 
@@ -45,9 +46,9 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ModifyComment(ModifyCommentModel model, Guid userId)
+        public async Task ModifyComment(ModifyCommentModel model, Guid userId, Guid commentId)
         {
-            var comment = await GetCommentById(model.CommentId);
+            var comment = await GetCommentById(commentId);
             if (userId != comment.AuthorId)
                 throw new ModifyCommentException();
 
@@ -65,7 +66,7 @@ namespace DDStudy2022.Api.Services
             if (post == null)
                 throw new PostNotFoundException();
             if (!await IsAuthorizedToSeeComments(userId, post.AuthorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
             
             var dbComments = await _context.PostComments
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
@@ -88,24 +89,31 @@ namespace DDStudy2022.Api.Services
             return comments;
         }
 
-        public async Task LikeComment(ModifyCommentLikeModel model)
+        public async Task LikeComment(Guid userId, Guid commentId)
         {
             var comment = await _context.PostComments
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == model.CommentId);
+                .FirstOrDefaultAsync(p => p.Id == commentId);
 
             if (comment == null)
                 throw new CommentNotFoundException();
-            if (!await IsAuthorizedToSeeComments((Guid)model.UserId!, comment.AuthorId))
-                throw new PrivateAccountNonsubException();
+            
+            if (!await IsAuthorizedToSeeComments(userId!, comment.AuthorId))
+                throw new PrivateAccountException();
 
-            var like = await _context.CommentLikes.FirstOrDefaultAsync(x => x.UserId == model.UserId && x.CommentId == model.CommentId);
+            var like = await _context.CommentLikes.FirstOrDefaultAsync(x => x.UserId == userId && x.CommentId == commentId);
             if (like != null)
             {
                 _context.CommentLikes.Remove(like);
-            } else
+            } 
+            else
             {
-                var dbLike = _mapper.Map<CommentLike>(model);
+                var likeModel = new CommentLike
+                {
+                    CommentId = commentId,
+                    UserId = userId
+                };
+                var dbLike = _mapper.Map<CommentLike>(likeModel);
                 await _context.CommentLikes.AddAsync(dbLike);
             }
                
@@ -130,9 +138,7 @@ namespace DDStudy2022.Api.Services
             if (!dbAuthor.IsActive)
                 return false;
 
-            if (!dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.IsConfirmed))
-                return true;
-            return false;
+            return !dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.Status == SubscriptionStatus.Active);
         }
     }
 }

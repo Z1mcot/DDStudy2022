@@ -1,20 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DDStudy2022.Common.Exceptions
+﻿namespace DDStudy2022.Common.Exceptions
 {
-    public class ForbiddenActionException : Exception
+    public class UnauthorizedActionException : Exception
     {
-        public string? Action { get; set; }
+        protected string? Action { get; init; }
 
         public override string Message => $"You are not allowed to {Action}";
     }
 
-    public class ModifyPostException : ForbiddenActionException
+    public class ChangePasswordException : UnauthorizedActionException
+    {
+        public ChangePasswordException()
+        {
+            Action = "Wrong old password";
+        }
+    }
+
+    public class ModifyPostException : UnauthorizedActionException
     {
         public ModifyPostException()
         {
@@ -22,7 +23,7 @@ namespace DDStudy2022.Common.Exceptions
         }
     }
     
-    public class ModifyCommentException : ForbiddenActionException
+    public class ModifyCommentException : UnauthorizedActionException
     {
         public ModifyCommentException()
         {
@@ -30,7 +31,7 @@ namespace DDStudy2022.Common.Exceptions
         }
     }
 
-    public class DeleteStoryException : ForbiddenActionException
+    public class DeleteStoryException : UnauthorizedActionException
     {
         public DeleteStoryException()
         {
@@ -38,26 +39,5 @@ namespace DDStudy2022.Common.Exceptions
         }
     }
 
-    public class PrivateAccountException : Exception
-    {
-        public string? Action { get; set; }
-
-        public override string Message => $"You are not allowed to {Action}";
-    }
-
-    public class PrivateAccountNonsubException : PrivateAccountException
-    {
-        public PrivateAccountNonsubException()
-        {
-            Action = "see this users posts.";
-        }
-    }
-
-    public class PrivateAccountInfoException : PrivateAccountException
-    {
-        public PrivateAccountInfoException()
-        {
-            Action = "see this user info";
-        }
-    }
+    
 }

@@ -1,19 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DDStudy2022.Common.Enums;
 
 namespace DDStudy2022.DAL.Entities
 {
     public class UserSubscription
     {
-        public Guid Id { get; set; }
-        public Guid AuthorId { get; set; }
-        public virtual User Author { get; set; } = null!; // Спорное имя, но по другому в английском никак, только если Creator
-        public Guid SubscriberId { get; set; }
-        public virtual User Subscriber { get; set; } = null!;
-        public DateTimeOffset SubscriptionDate { get; set; }
-        public bool IsConfirmed { get; set; }
+        public Guid Id { get; init; }
+        public Guid AuthorId { get; init; }
+        public virtual User Author { get; init; } = null!;
+        public Guid SubscriberId { get; init; }
+        public virtual User Subscriber { get; init; } = null!;
+        public DateTimeOffset SubscriptionDate { get; init; }
+        
+        public SubscriptionStatus Status { get; set; }
     }
 }

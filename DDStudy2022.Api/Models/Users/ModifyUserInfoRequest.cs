@@ -2,7 +2,6 @@
 {
     public class ModifyUserInfoRequest
     {
-        public Guid? Id { get; set; }
         public string? NameTag { get; set; }
         public string? Name { get; set; }
         public string? Email { get; set; }
