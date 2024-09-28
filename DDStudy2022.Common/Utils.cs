@@ -14,7 +14,7 @@ namespace DDStudy2022.Common
             try
             {
                 var converter = TypeDescriptor.GetConverter(typeof(T));
-                if (converter != null && converter.ConvertFromString(input) is T res)
+                if (converter.ConvertFromString(input) is T res)
                 {
                     return res;
                 }

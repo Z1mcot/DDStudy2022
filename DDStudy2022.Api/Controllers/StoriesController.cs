@@ -4,12 +4,11 @@ using DDStudy2022.Common.Consts;
 using DDStudy2022.Common.Exceptions;
 using DDStudy2022.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDStudy2022.Api.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/stories")]
     [ApiController]
     [Authorize]
     [ApiExplorerSettings(GroupName = "Api")]
@@ -45,14 +44,15 @@ namespace DDStudy2022.Api.Controllers
             await _storiesService.AddStoriesToUser(request);
         }
 
-        [HttpPost]
+        [HttpDelete]
+        [Route("{storyId:guid}")]
         public async Task DeleteStory(Guid storyId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new IdClaimConversionException();
 
-            await _storiesService.UnlistStory(userId, storyId);
+            await _storiesService.RemoveStory(userId, storyId);
         }
 
         [HttpGet]
@@ -66,16 +66,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<List<StoriesModel>> GetUserStories(Guid authorId)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new IdClaimConversionException();
-
-            return await _storiesService.GetUserStories(userId, authorId);
-        }
-
-        [HttpGet]
+        [Route("{storyId:guid}")]
         public async Task<StoriesModel> GetStoryById(Guid storyId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);

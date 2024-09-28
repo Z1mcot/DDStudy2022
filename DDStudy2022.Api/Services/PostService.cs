@@ -2,6 +2,7 @@
 using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.Api.Models.Likes;
 using DDStudy2022.Api.Models.Posts;
+using DDStudy2022.Common.Enums;
 using DDStudy2022.Common.Exceptions;
 using DDStudy2022.Common.Extensions;
 using DDStudy2022.DAL;
@@ -116,26 +117,17 @@ namespace DDStudy2022.Api.Services
                 .Include(x => x.Likes)
                 .AsNoTracking()
                 .Where(p => p.AuthorId != userId // нет смысла выводит здесь свои же посты
-                            && p.Author.IsActive // Проще было бы конечно удалять пользователей, но раз уж сделал так, то приходиться проверять рабочий ли юзер
-                            && p.IsShown // Аналогично с постами
-                            && (!p.Author.IsPrivate || p.Author.Subscribers!.Any(u => u.SubscriberId == userId && u.IsConfirmed))
+                            && p.Author.IsActive
+                            && p.IsShown
+                            && (!p.Author.IsPrivate || p.Author.Subscribers!.Any(u => u.SubscriberId == userId && u.Status == SubscriptionStatus.Active))
                             ) 
                 .OrderByDescending(x => x.PublishDate).Skip(skip).Take(take)
                 .ToListAsync();
 
-            var posts = new List<PostModel>();
-            foreach (var post in dbPosts)
+            return dbPosts.Select(post => _mapper.Map<Post, PostModel>(post, opt =>
             {
-                // Хорошо было бы оставить Select, но тогда мы бы не смогли сделать отображение того лайкнули ли мы пост или нет
-                var model = _mapper.Map<Post, PostModel>(post, opt =>
-                {
-                    opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
-                });
-                posts.Add(model);
-            }
-
-            return posts;
+                opt.AfterMap((src, dest) => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
+            })).ToList();
         }
 
         public async Task<AttachmentModel> GetPostContent(Guid userId, Guid postContentId)
@@ -146,7 +138,7 @@ namespace DDStudy2022.Api.Services
                 ?? throw new AttachmentNotFoundException();
             
             if (!await IsAuthorizedToSeePosts(userId, res.AuthorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
 
             return _mapper.Map<AttachmentModel>(res);
@@ -162,10 +154,10 @@ namespace DDStudy2022.Api.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == postId);
 
-            if (post == null || !post.IsShown)
+            if (post is not { IsShown: true })
                 throw new PostNotFoundException();
             if (!await IsAuthorizedToSeePosts(userId, post.AuthorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
             var postModel = _mapper.Map<Post, PostModel>(post, opt => 
             {
@@ -179,7 +171,7 @@ namespace DDStudy2022.Api.Services
         {
             var isSubbed = await IsAuthorizedToSeePosts(userId, authorId);
             if (!isSubbed)
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
             var dbPosts = await _context.Posts
                 .Include(s => s.Author).ThenInclude(s => s.Avatar)
@@ -191,41 +183,34 @@ namespace DDStudy2022.Api.Services
                 .OrderByDescending(x => x.PublishDate).Skip(skip).Take(take)
                 .ToListAsync();
 
-            var posts = new List<PostModel>();
-            foreach (var post in dbPosts)
-            {
-                // Хорошо было бы оставить Select, но тогда мы бы не смогли сделать отображение того лайкнули ли мы пост или нет
-                var model = _mapper.Map<Post, PostModel>(post, opt =>
-                {
-                    opt.AfterMap((src, dest)
-                        => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0);
-                });
-                posts.Add(model);
-            }
-
-            return posts;
+            return dbPosts.Select(post => _mapper.Map<Post, PostModel>(post, opt => { opt.AfterMap((src, dest) => dest.IsLiked = src.Likes != null && src.Likes.Any(s => s.UserId == userId && s.PostId == post.Id) ? 1 : 0); })).ToList();
         }
 
-        public async Task LikePost(ModifyPostLikeModel model)
+        public async Task LikePost(Guid userId, Guid postId)
         {
             var post = await _context.Posts
                 .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == model.PostId);
+                .FirstOrDefaultAsync(p => p.Id == postId);
 
             if (post == null || !post.IsShown)
                 throw new PostNotFoundException();
-            if (!await IsAuthorizedToSeePosts((Guid)model.UserId!, post.AuthorId))
-                throw new PrivateAccountNonsubException();
+            if (!await IsAuthorizedToSeePosts(userId, post.AuthorId))
+                throw new PrivateAccountException();
             
-            var like = await _context.PostLikes.FirstOrDefaultAsync(l => l.UserId == model.UserId && l.PostId == model.PostId);
+            var like = await _context.PostLikes.FirstOrDefaultAsync(l => l.UserId == userId && l.PostId == postId);
             if (like != null)
             {
                 _context.PostLikes.Remove(like);
             }
             else
             {
-                var dbLike = _mapper.Map<PostLike>(model);
-                await _context.PostLikes.AddAsync(dbLike);
+                var likeModel = new PostLike
+                {
+                    UserId = userId,
+                    PostId = postId
+                };
+                
+                await _context.PostLikes.AddAsync(likeModel);
             }
             
             await _context.SaveChangesAsync();
@@ -240,9 +225,7 @@ namespace DDStudy2022.Api.Services
             if (!dbAuthor.IsActive)
                 return false;
 
-            if (!dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.IsConfirmed))
-                return true;
-            return false;
+            return !dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.Status == SubscriptionStatus.Active);
         }
     }
 }

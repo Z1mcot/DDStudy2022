@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using DDStudy2022.Api.Models.Attachments;
 using DDStudy2022.Api.Models.Stories;
+using DDStudy2022.Common.Enums;
 using DDStudy2022.Common.Exceptions;
-using DDStudy2022.Common.Extensions;
 using DDStudy2022.DAL;
 using DDStudy2022.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +33,7 @@ namespace DDStudy2022.Api.Services
             if (tempFi.Exists)
             {
                 var destFi = new FileInfo(model.Content.FilePath);
-                if (destFi.Directory != null && !destFi.Directory.Exists)
+                if (destFi.Directory is { Exists: false })
                     destFi.Directory.Create();
 
                 File.Move(tempFi.FullName, model.Content.FilePath, true);
@@ -45,7 +45,7 @@ namespace DDStudy2022.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task UnlistStory(Guid userId, Guid storyId)
+        public async Task RemoveStory(Guid userId, Guid storyId)
         {
             var story = await _context.Stories.FirstOrDefaultAsync(s => s.IsShown && s.Id == storyId);
             if (story == null)
@@ -66,7 +66,7 @@ namespace DDStudy2022.Api.Services
                 .Include(s => s.Content)
                 .Where(s => s.AuthorId != userId && s.IsShown && s.ExpirationDate > dtNow 
                             && s.Author.IsActive
-                            && (!s.Author.IsPrivate || s.Author.Subscribers!.Any(u => u.SubscriberId == userId && u.IsConfirmed)))
+                            && (!s.Author.IsPrivate || s.Author.Subscribers!.Any(u => u.SubscriberId == userId && u.Status == SubscriptionStatus.Active)))
                 .Select(s => _mapper.Map<StoriesModel>(s))
                 .ToListAsync();
 
@@ -76,7 +76,7 @@ namespace DDStudy2022.Api.Services
         public async Task<List<StoriesModel>> GetUserStories(Guid userId, Guid authorId)
         {
             if (!await IsAuthorizedToSeeStories(userId, authorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
             var dtNow = DateTime.UtcNow;
             var stories = await _context.Stories
@@ -100,7 +100,7 @@ namespace DDStudy2022.Api.Services
             if (story == null)
                 throw new StoriesNotFoundException();
             if (!await IsAuthorizedToSeeStories(userId, story.AuthorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
             return _mapper.Map<StoriesModel>(story);
         }
@@ -115,7 +115,7 @@ namespace DDStudy2022.Api.Services
             if (res == null)
                 throw new AttachmentNotFoundException();
             if (!await IsAuthorizedToSeeStories(userId, res.AuthorId))
-                throw new PrivateAccountNonsubException();
+                throw new PrivateAccountException();
 
             return _mapper.Map<AttachmentModel>(res);
         }
@@ -129,9 +129,7 @@ namespace DDStudy2022.Api.Services
             if (!dbAuthor.IsActive)
                 return false;
 
-            if (!dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.IsConfirmed))
-                return true;
-            return false;
+            return !dbAuthor.IsPrivate || dbAuthor.Subscribers!.Any(s => s.SubscriberId == userId && s.Status == SubscriptionStatus.Active);
         }
     }
 }

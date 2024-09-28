@@ -10,7 +10,7 @@ using DDStudy2022.Api.Models.Likes;
 
 namespace DDStudy2022.Api.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/posts")]
     [ApiController]
     [Authorize]
     [ApiExplorerSettings(GroupName = "Api")]
@@ -48,18 +48,18 @@ namespace DDStudy2022.Api.Controllers
             await _postService.CreatePost(request);
         }
 
-        [HttpPost]
+        [HttpDelete]
         public async Task DeletePost(Guid postId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
-                throw new IdClaimConversionException();
-            else
-                await _postService.UnlistPost(userId, postId);
+                throw new IdClaimConversionException(); 
+            
+            await _postService.UnlistPost(userId, postId);
         }
 
         // Пока он только добавляет новые картинки к посту
-        [HttpPost]
+        [HttpPut]
         public async Task ModifyPost(Guid postId, ModifyPostRequest request)
         {
             if (!request.AuthorId.HasValue)
@@ -74,18 +74,8 @@ namespace DDStudy2022.Api.Controllers
             await _postService.ModifyPost(postId, request);
         }
 
-
         [HttpGet]
-        public async Task<List<PostModel>> ShowUserPosts(Guid authorId, int skip = 0, int take = 10)
-        {
-            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-            if (userId == default)
-                throw new IdClaimConversionException();
-
-            return await _postService.GetUserPosts(userId, authorId, skip, take);
-        }
-
-        [HttpGet]
+        [Route("{postId:guid}")]
         public async Task<PostModel> ShowPost(Guid postId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -106,31 +96,29 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task AddCommentToPost(AddCommentModel model)
+        [Route("{postId:guid}/comments")]
+        public async Task AddCommentToPost(Guid postId, AddCommentModel model)
         {
-            if (!model.AuthorId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
+            var authorId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (authorId == default)
+                throw new IdClaimConversionException();
 
-                model.AuthorId = userId;
-            }
-
-            await _commentService.AddComment(model);
+            await _commentService.AddComment(authorId, postId, model);
         }
 
-        [HttpPost]
-        public async Task ModifyPostComment(ModifyCommentModel model)
+        [HttpPut]
+        [Route("comments/{commentId:guid}")]
+        public async Task ModifyPostComment(Guid commentId, ModifyCommentModel model)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
             if (userId == default)
                 throw new IdClaimConversionException();
 
-            await _commentService.ModifyComment(model, userId);
+            await _commentService.ModifyComment(model, userId, commentId);
         }
 
-        [HttpPost]
+        [HttpDelete]
+        [Route("comments/{commentId:guid}")]
         public async Task DeleteComment(Guid commentId)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -141,6 +129,7 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpGet]
+        [Route("{postId:guid}/comments")]
         public async Task<List<CommentModel>> ShowComments(Guid postId, int skip = 0, int take = 10)
         {
             var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
@@ -151,33 +140,25 @@ namespace DDStudy2022.Api.Controllers
         }
 
         [HttpPost]
-        public async Task LikePost(ModifyPostLikeModel model)
+        [Route("{postId:guid}/like")]
+        public async Task LikePost(Guid postId)
         {
-            if (!model.UserId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new IdClaimConversionException();
 
-                model.UserId = userId;
-            }
-
-            await _postService.LikePost(model);
+            await _postService.LikePost(userId, postId);
         }
 
         [HttpPost]
-        public async Task LikeComment(ModifyCommentLikeModel model)
+        [Route("comments/{commentId:guid}/like")]
+        public async Task LikeComment(Guid commentId)
         {
-            if (!model.UserId.HasValue)
-            {
-                var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
-                if (userId == default)
-                    throw new IdClaimConversionException();
+            var userId = User.GetClaimValue<Guid>(ClaimNames.Id);
+            if (userId == default)
+                throw new IdClaimConversionException();
 
-                model.UserId = userId;
-            }
-
-            await _commentService.LikeComment(model);
+            await _commentService.LikeComment(userId, commentId);
         }
     }
 }

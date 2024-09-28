@@ -30,28 +30,24 @@ namespace DDStudy2022.Api.Services
             return t.Entity.Id;
         }
 
-        public async Task ChangeUserPassword(PasswordChangeRequest request)
+        public async Task ChangeUserPassword(Guid userId, PasswordChangeRequest request)
         {
-            var model = _mapper.Map<PasswordChangeModel>(request);
+            var user = await GetUserById(userId);
+            if (!HashHelper.Verify(request.OldPassword, user.PasswordHash))
+                throw new ChangePasswordException();
 
-            var user = await GetUserById(model.Id);
-            if (!HashHelper.Verify(model.OldPassword, user.PasswordHash))
-                throw new Exception("Wrong password"); // TODO
-
-            user.PasswordHash = HashHelper.GetHash(model.NewPassword);
+            user.PasswordHash = HashHelper.GetHash(request.NewPassword);
             await _context.SaveChangesAsync();
         }
 
-        public async Task ModifyUserInfo(ModifyUserInfoRequest request)
+        public async Task ModifyUserInfo(Guid userId, ModifyUserInfoRequest request)
         {
-            var model = _mapper.Map<ModifyUserInfoModel>(request);
+            var user = await GetUserById(userId);
             
-            var user = await GetUserById(model.Id);
-            
-            user.Name = model.Name ?? user.Name;
-            user.NameTag = model.NameTag ?? user.NameTag;
-            user.Email = model.Email ?? user.Email;
-            user.BirthDate = model.BirthDate ?? user.BirthDate;
+            user.Name = request.Name ?? user.Name;
+            user.NameTag = request.NameTag ?? user.NameTag;
+            user.Email = request.Email ?? user.Email;
+            user.BirthDate = request.BirthDate ?? user.BirthDate;
 
             await _context.SaveChangesAsync();
         }
@@ -123,9 +119,9 @@ namespace DDStudy2022.Api.Services
         public async Task<ICollection<UserSession>> GetUserSessions(Guid userId) 
             => await _context.UserSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync();
 
-        public async Task DeactivateSession(Guid refreshToken)
+        public async Task DeactivateSession(Guid sessionId)
         {
-            var session = await GetSessionByRefreshToken(refreshToken);
+            var session = await GetSessionById(sessionId);
             session.IsActive = false;
 
             await _context.SaveChangesAsync();
@@ -188,6 +184,10 @@ namespace DDStudy2022.Api.Services
 
         private async Task<UserSession> GetSessionByRefreshToken(Guid id) 
             => await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.RefreshToken == id)
+                ?? throw new SessionNotFoundException();
+        
+        private async Task<UserSession> GetSessionById(Guid sessionId)
+            => await _context.UserSessions.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == sessionId && x.IsActive) 
                 ?? throw new SessionNotFoundException();
     }
 }

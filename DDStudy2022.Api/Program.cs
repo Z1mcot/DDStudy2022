@@ -16,19 +16,15 @@ namespace DDStudy2022.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            // Проброс конфигов
+            
             var authSection = builder.Configuration.GetSection(AuthConfig.ConfigPosition);
             var authConfig = authSection.Get<AuthConfig>();
 
-            var pushSection = builder.Configuration.GetSection(AuthConfig.ConfigPosition);
-
-
-            // Регистрация сервисов
+            var pushSection = builder.Configuration.GetSection(PushConfig.Position);
 
             builder.Services.Configure<AuthConfig>(authSection);
 
-            builder.Services.Configure<PushConfig>(builder.Configuration.GetSection(PushConfig.Position));
+            builder.Services.Configure<PushConfig>(pushSection);
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -65,14 +61,12 @@ namespace DDStudy2022.Api
                 c.SwaggerDoc("Auth", new OpenApiInfo { Title = "Auth" });
                 c.SwaggerDoc("Api", new OpenApiInfo { Title = "Api" });
             });
-
-            // Регистрация сессии с нашей ДБ 
+            
             builder.Services.AddDbContext<DAL.DataContext>(options =>
             {
-                options.UseNpgsql(builder.Configuration.GetConnectionString("PostreSQL"), sql => { });
+                options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL"), sql => { });
             });
-
-            // Анти дудос
+            
             builder.Services.AddOptions();
             builder.Services.AddMemoryCache();
             builder.Services.Configure<ClientRateLimitOptions>(builder.Configuration.GetSection("ClientRateLimiting"));
@@ -82,7 +76,6 @@ namespace DDStudy2022.Api
 
             builder.Services.AddAutoMapper(typeof(MapperProfile).Assembly);
             
-            // Наши кастомные сервисы
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<AuthService>();
 
@@ -98,9 +91,10 @@ namespace DDStudy2022.Api
 
             builder.Services.AddScoped<GooglePushService>();
 
-            //builder.Services.AddSingleton<DdosGuard>();
+            builder.Services.AddScoped<NotifyService>();
 
-            // Аутентификация и авторизация
+            //builder.Services.AddSingleton<DdosGuard>();
+            
             builder.Services.AddAuthentication(o =>
             {
                 o.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -130,10 +124,7 @@ namespace DDStudy2022.Api
 
             var app = builder.Build();
 
-
-            // Описание логики API
-
-            // Автоматическая миграция. Вызывается при каждом запуске приложения. Это scoped сервис, который живё только во время запроса
+            
             using (var serviceScope = ((IApplicationBuilder)app).ApplicationServices.GetService<IServiceScopeFactory>()?.CreateScope())
             {
                 if (serviceScope != null)
